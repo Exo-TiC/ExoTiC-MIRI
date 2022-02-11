@@ -1,4 +1,16 @@
-# Byte-compiled / optimized / DLL files
+# OS and pycharm
+.DS_Store
+ehthumbs.db
+Icon
+Thumbs.db
+.tmtags
+.idea
+tags
+vendor.tags
+tmtagsHistory
+.bundle
+
+ Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
