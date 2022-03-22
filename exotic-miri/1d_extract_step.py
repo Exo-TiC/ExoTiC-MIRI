@@ -1,6 +1,8 @@
 from jwst import datamodels
 from jwst.stpipe import Step
 
+from jwst.pipeline import calwebb_spec2
+
 
 class Extract1dStep(Step):
     """Extract a 1-d spectrum from 2-d data
@@ -10,15 +12,10 @@ class Extract1dStep(Step):
     """
 
     spec = """
-    smoothing_length = integer(default=None)  # background smoothing size
-    bkg_fit = option("poly", "mean", "median", default="poly")  # background fitting type
-    bkg_order = integer(default=None, min=0)  # order of background polynomial fit
-    bkg_sigma_clip = float(default=3.0)  # background sigma clipping threshold
-    log_increment = integer(default=50)  # increment for multi-integration log messages
-    subtract_background = boolean(default=None)  # subtract background?
+    extract_algo = option("box", "optimal", default="box")  # extraction algorithm
     """
 
-    reference_file_types = ['extract1d', 'apcorr', 'wavemap', 'spectrace', 'specprofile', 'speckernel']
+    reference_file_types = ['extract1d', 'apcorr', 'wavemap', 'spectrace', 'specprofile']
 
     def process(self, input):
         """Execute the step.
@@ -46,18 +43,20 @@ class Extract1dStep(Step):
             return input_model
 
         # Data observation mode.
-        if not input_model.meta.exposure.type == 'MIRI_LRS':
+        if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
             self.log.error(f'Observation is a {input_model.meta.exposure.type}, ')
             self.log.error('which is not supported by ExoTic-MIRIs extract_1d')
             self.log.error('extract_1d will be skipped.')
             input_model.meta.cal_step.extract_1d = 'SKIPPED'
             return input_model
 
-
         # TODO: see what this does.
         self.get_reference_file(input_model, 'apcorr')
 
-        # TODO: do extraction.
+        # TODO: do extraction. diff types
+        # TODO: Need to add iterations for not using statistical outliers in weighting map.
+
+        # TODO: build output data type.
 
         result = extract.run_extract1d(
             input_model,
