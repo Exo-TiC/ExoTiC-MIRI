@@ -5,7 +5,7 @@ from jwst.pipeline import calwebb_spec2
 
 
 class Extract1dStep(Step):
-    """Extract a 1-d spectrum from 2-d data
+    """ Extract a 1-d spectrum from 2-d data.
 
     Blurb.
 
@@ -50,7 +50,7 @@ class Extract1dStep(Step):
             input_model.meta.cal_step.extract_1d = 'SKIPPED'
             return input_model
 
-        # TODO: see what this does.
+        # TODO: see what this does. We will need the read noise
         self.get_reference_file(input_model, 'apcorr')
 
         # TODO: do extraction. diff types
@@ -80,3 +80,57 @@ class Extract1dStep(Step):
         input_model.close()
 
         return
+
+    def stuff(self):
+        # Todo -- DN vs e- vs rates for input data, func of 2d.
+        # Todo -- Sky background subtraction in 2d.
+        # Todo -- non-parametric vs polynomial fits to background and weightings model.
+        # Todo -- convergence criterion: all or median < eps.
+        # Todo -- make a notebook example of the three methods.
+        # Todo -- how can we do it for all integrations, or just per data chunk?
+        # Todo -- implement as a step.
+        return
+
+    def load_rate_images(self):
+        # Load as many rate images as possible.
+        # Ideally we want a global solution for the entire
+        # dataset, but may have to be per data chunk.
+        # Also load the error arrays.
+        # Perhaps can process per chunk but maintaining global knowledge in
+        # some way. ie. summing overall counts but keeping shift arrays for all.
+
+        # Potentially we want to cut a border away from the edge too.
+        # Then on shift-reg-grid we cut to the data strip we care about.
+        return
+
+    def load_referece_files(self):
+        # Load the read noise ref file.
+        # Load the gain ref file.
+        return
+
+    def convert_to_data_numbers(self):
+        # Get integration durations.
+        # Convert data and err arrays from rates to data numbers.
+        return
+
+    def subtract_background(self):
+        # Subtract background from all rate images.
+        # Update err arrays. Wait no updates needed for subtraction if background well known.
+        # Options: constant, polynomial per row, smoothed, gp.
+        return
+
+    def extract_spec(self):
+        # Option 1.
+        # Box.
+
+        # Option 2.
+        # Optimal extraction per frame.
+
+        # Option 3.
+        # Global optimal extraction.
+        return
+
+    def box_extraction(self):
+
+
+

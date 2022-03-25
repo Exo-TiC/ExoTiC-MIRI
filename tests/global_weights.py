@@ -25,25 +25,27 @@ row_pixel_vals = np.arange(0, n_rows)
 col_pixel_vals = np.arange(0, n_cols)
 psf_locs = np.linspace(33.0, 35.0, n_ints) + np.random.normal(loc=0., scale=0.1, size=n_ints)
 psf_sigma_func = np.linspace(1.25, 1.35, n_rows)
-#Todo - move spec in y.
-spec_func = np.linspace(1e6, 3e6, n_rows) * gaussian(np.arange(0, n_rows, 1), 210., 75.)
+spec_func_amp = 2.e6
+spec_func_sigma = 75.
+spec_func_means = np.linspace(211., 211.0, n_ints) + np.random.normal(loc=0., scale=0.1, size=n_ints)
 Q = 1
 bias = 150.
-white_noise_floor = 20.
+readout_noise = 20.
 n_bins = 5
 bins = np.linspace(0, n_rows - 1, n_bins + 1).astype(np.int64)
 
 
-def make_integration_frame(psf_loc, draw=False):
+def make_integration_frame(spec_loc, psf_loc, draw=False):
     data_2d = np.zeros((n_rows, n_cols), dtype=np.double)
     for row_idx in row_pixel_vals:
         data_2d[row_idx] = gaussian(col_pixel_vals, psf_loc, psf_sigma_func[row_idx])
     data_2d = np.array(data_2d)
+    spec_func = spec_func_amp * gaussian(row_pixel_vals, spec_loc, spec_func_sigma)
     data_2d = data_2d * spec_func[:, np.newaxis]
     data_2d = np.random.poisson(data_2d)
     data_2d = data_2d + bias
-    data_2d += np.random.normal(loc=0., scale=white_noise_floor, size=data_2d.shape)
-    variance_2d = white_noise_floor**2 + np.abs(data_2d) / Q
+    data_2d += np.random.normal(loc=0., scale=readout_noise, size=data_2d.shape)
+    variance_2d = readout_noise**2 + np.abs(data_2d) / Q
 
     if draw:
         fig = plt.figure(figsize=(9, 8))
@@ -81,6 +83,9 @@ def build_global_weightings_img(d_strip, var_strip):
                 continue
             else:
                 p.append(p_model)
+                # plt.plot(p_iter[:, col])
+                # plt.plot(p_model)
+                # plt.show()
                 break
 
     p = np.array(p).T
@@ -90,16 +95,7 @@ def build_global_weightings_img(d_strip, var_strip):
     return p_spec, p_psf
 
 
-def cross_correlation(pixels, template, dataset, width=50):
-
-    # # Templates must be shorter than data for sensical valid mode.
-    # if not len(template) < dataset.shape[1]:
-    #     raise ValueError('Template must be shorter than data.')
-
-    # # Templates must be odd number in length for proper wavelength matching.
-    # if len(template) % 2 == 0:
-    #     raise ValueError('Template must have an odd length.')
-
+def cross_correlation(pixels, template, dataset, width=5):
     # Standardise.
     template /= np.max(template)
     dataset /= np.max(dataset)
@@ -119,7 +115,7 @@ def cross_correlation(pixels, template, dataset, width=50):
     return rvs
 
 
-def extract_rvs_from_ccf(wavelengths_ccf, dataset_ccf, width=50):
+def extract_rvs_from_ccf(wavelengths_ccf, dataset_ccf, width=5, draw=False):
     # Find initial RVs of each CCF.
     rvs = []
     for i, ccf in enumerate(dataset_ccf):
@@ -139,7 +135,7 @@ def extract_rvs_from_ccf(wavelengths_ccf, dataset_ccf, width=50):
         # rvs.append(-popt[1] / (2 * popt[0]))
         rvs.append(popt[1])
 
-        if False:
+        if draw:
             fig = plt.figure(figsize=(10, 6))
             ax1 = fig.add_subplot(1, 1, 1)
 
@@ -166,6 +162,7 @@ def extract_global_opt(all_data, all_var):
 
     x_shifts = np.zeros(all_data.shape[0])
     y_shifts = np.zeros(all_data.shape[0])
+
     # R, C = np.meshgrid(row_pixel_vals, col_pixel_vals)
     while True:
         # Re-grid.
@@ -208,10 +205,10 @@ def extract_global_opt(all_data, all_var):
             f = np.sum(d_strip, axis=1)
             f2 = np.sum(d_strip, axis=0)
 
-            v = white_noise_floor**2 + np.abs(f[:, np.newaxis] * p_spec + bkg[i]) / Q
+            v = readout_noise**2 + np.abs(f[:, np.newaxis] * p_spec + bkg[i]) / Q
             opt_specs.append(np.sum(p_spec * d_strip / v, axis=1) / np.sum(p_spec ** 2 / v, axis=1))
 
-            v2 = white_noise_floor**2 + np.abs(f2[np.newaxis, :] * p_psf + bkg[i]) / Q
+            v2 = readout_noise**2 + np.abs(f2[np.newaxis, :] * p_psf + bkg[i]) / Q
             opt_psfs.append(np.sum(p_psf * d_strip / v2, axis=0) / np.sum(p_psf ** 2 / v2, axis=0))
 
         # Compute shifts.
@@ -219,7 +216,7 @@ def extract_global_opt(all_data, all_var):
         template_psf = np.median(opt_psfs, axis=0)
 
         pixels_spec = row_pixel_vals
-        cc = cross_correlation(pixels_spec, template_spec, np.array(opt_specs), width=50)
+        cc = cross_correlation(pixels_spec, template_spec, np.array(opt_specs), width=5)
         y_shift_corr = cc - cc[int(n_ints / 2)]
         y_shifts += y_shift_corr
 
@@ -228,7 +225,8 @@ def extract_global_opt(all_data, all_var):
         x_shift_corr = cc - cc[int(n_ints / 2)]
         x_shifts += x_shift_corr
 
-        print(y_shift_corr, x_shift_corr)
+        print('Shift corr x median: ', np.median(x_shift_corr),
+              'Shift corr y median: ', np.median(y_shift_corr))
         if np.all(np.abs(y_shift_corr) < 1e-5) and np.all(np.abs(x_shift_corr) < 1e-5):
             break
 
@@ -274,7 +272,7 @@ def extract_opt(data_2d, variance_2d):
     p = np.array(p).T
     p[p < 0] = 0.
     p = p / np.sum(p, axis=1)[:, np.newaxis]
-    v = white_noise_floor ** 2 + np.abs(f[:, np.newaxis] * p + bkg) / Q
+    v = readout_noise ** 2 + np.abs(f[:, np.newaxis] * p + bkg) / Q
 
     opt_spec = np.sum(p * d / v, axis=1) / np.sum(p ** 2 / v, axis=1)
     return opt_spec
@@ -292,7 +290,7 @@ def extract_box(data_2d, variance_2d):
 ds = []
 vs = []
 for i in range(n_ints):
-    d, v = make_integration_frame(psf_locs[i], draw=False)
+    d, v = make_integration_frame(spec_func_means[i], psf_locs[i], draw=False)
     ds.append(d)
     vs.append(v)
 
