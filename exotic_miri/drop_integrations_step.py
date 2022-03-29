@@ -44,7 +44,7 @@ class RegroupStep(Step):
 
             # Check the observation mode.
             if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which is not supported '
+                self.log.error('Observation is a {} which was not supported '
                                'by ExoTic-MIRIs regroup_step, skipping step.'
                                .format(input_model.meta.exposure.type))
                 regrouped_model.meta.cal_step.regroup = 'SKIPPED'
