@@ -1,6 +1,10 @@
 import os
 import unittest
 import numpy as np
+
+os.environ['CRDS_PATH'] = 'crds_cache'
+os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
+
 from jwst import datamodels
 
 from exotic_miri import RegroupStep
@@ -11,11 +15,6 @@ class TestRegroup(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestRegroup, self).__init__(*args, **kwargs)
-
-        # CRDS config.
-        os.environ['CRDS_PATH'] = '/Users/davidgrant/Work/Code/ResearchScience' \
-                                  '/MIRI-HelloWorld/crds_cache'
-        os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
 
         # Build test RampModel data structure.
         self.test_ramp_model = datamodels.RampModel()
