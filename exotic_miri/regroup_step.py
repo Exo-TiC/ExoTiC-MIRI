@@ -5,9 +5,9 @@ from jwst.stpipe import Step
 class RegroupStep(Step):
     """ Regroup groups into integrations.
 
-    This steps allows you to regroup your integrations, comprised of n
-    groups, into several smaller integrations, comprised of m groups,
-    where n is a multiple of m.
+    This steps allows the user to regroup your integrations, comprised
+    of n groups, into several smaller integrations, comprised of m
+    groups, where n is a multiple of m.
 
     """
 
