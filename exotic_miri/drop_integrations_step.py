@@ -1,18 +1,20 @@
+import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
 
 
-class RegroupStep(Step):
-    """ Regroup groups into integrations.
+class DropIntegrationsStep(Step):
+    """ Drop integrations within data chunk.
 
-    This steps allows you to regroup your integrations, comprised of n
-    groups, into several smaller integrations, comprised of m groups,
-    where n is a multiple of m.
+    This steps allows you to drop integrations from a data chunk
+    owing to these groups being too severely affected by systematics.
+    This step may also be useful if wanting to test pipelines on
+    only a small subset of data.
 
     """
 
     spec = """
-    n_groups = integer(default=10)  #  new number of groups per integration
+    integrations = int_list()  #  integrations to drop, zero-indexed.
     """
 
     def process(self, input):
@@ -26,60 +28,62 @@ class RegroupStep(Step):
         Returns
         -------
         JWST data model
-            A RampModel with updated integration groupings, unless the
+            A RampModel with updated integrations, unless the
             step is skipped in which case `input_model` is returned.
         """
         with datamodels.open(input) as input_model:
 
             # Copy input model.
-            regrouped_model = input_model.copy()
+            thinned_model = input_model.copy()
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'regroup_step, skipping step.'.format(
+                self.log.error('Input is a {} which was not expected for _int'
+                               'egrations_step, skipping step.'.format(
                                 str(type(input_model))))
-                regrouped_model.meta.cal_step.regroup = 'SKIPPED'
-                return regrouped_model
+                thinned_model.meta.cal_step.drop_integrations = 'SKIPPED'
+                return thinned_model
 
             # Check the observation mode.
             if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which was not supported '
-                               'by ExoTic-MIRIs regroup_step, skipping step.'
-                               .format(input_model.meta.exposure.type))
-                regrouped_model.meta.cal_step.regroup = 'SKIPPED'
-                return regrouped_model
+                self.log.error('Observation is a {} which is not supported by'
+                               ' ExoTic-MIRIs drop_integrations_step, skippin'
+                               'g step.'.format(
+                                input_model.meta.exposure.type))
+                thinned_model.meta.cal_step.drop_integrations = 'SKIPPED'
+                return thinned_model
 
-            # Check original number of groups is a multiple of n_groups.
-            n = regrouped_model.meta.exposure.ngroups
-            if not n % self.n_groups == 0:
-                self.log.error('Regrouping to {} groups is not possible for '
-                               'the original group number {}. It must be a '
-                               'multiple, skipping step.'.format(
-                                self.n_groups, n))
-                regrouped_model.meta.cal_step.regroup = 'SKIPPED'
-                return regrouped_model
+            # Check integrations to drop exist within data chunk.
+            min_i_drop = np.min(self.integrations)
+            max_i_drop = np.max(self.integrations)
+            current_n_integrations = thinned_model.data.shape[0]
+            if min_i_drop < 0 or max_i_drop > current_n_integrations - 1:
+                self.log.error('Not all integrations listed for dropping exis'
+                               't, requested to drop integrations between {} '
+                               'and {} when current integrations only span 0 '
+                               'to {}. Check your input list is zero indexed,'
+                               ' skipping step.'.format(
+                                min_i_drop, max_i_drop,
+                                current_n_integrations - 1))
+                thinned_model.meta.cal_step.drop_integrations = 'SKIPPED'
+                return thinned_model
 
-            # Compute change in integration sizes.
-            d_factor = self.n_groups / regrouped_model.data.shape[1]
-            n_int = int(regrouped_model.data.shape[0] / d_factor)
+            # Compute wanted integrations.
+            current_integrations = np.arange(0, current_n_integrations, 1)
+            wanted_integrations = current_integrations[~np.isin(
+                current_integrations, self.integrations)]
 
-            # Regroup data.
-            regrouped_model.data = regrouped_model.data.reshape(
-                n_int, self.n_groups, 416, 72)
-            regrouped_model.err = regrouped_model.err.reshape(
-                n_int, self.n_groups, 416, 72)
-            regrouped_model.groupdq = regrouped_model.groupdq.reshape(
-                n_int, self.n_groups, 416, 72)
+            # Drop integrations.
+            thinned_model.data = thinned_model.data[
+                                 wanted_integrations, :, :, :]
+            thinned_model.err = thinned_model.err[
+                                wanted_integrations, :, :, :]
+            thinned_model.groupdq = thinned_model.groupdq[
+                                    wanted_integrations, :, :, :]
 
             # Update meta.
-            regrouped_model.meta.ngroups = self.n_groups
-            regrouped_model.meta.ngroups_file = self.n_groups
-            regrouped_model.meta.nints = n_int
-            regrouped_model.meta.nints_file = n_int
-            regrouped_model.meta.exposure.integration_time = \
-                regrouped_model.meta.exposure.integration_time * d_factor
-            regrouped_model.meta.exposure.ngroups = self.n_groups
-            regrouped_model.meta.exposure.nints = n_int
+            thinned_model.meta.nints = thinned_model.data.shape[0]
+            thinned_model.meta.nints_file = thinned_model.data.shape[0]
+            thinned_model.meta.exposure.nints = thinned_model.data.shape[0]
 
-        return regrouped_model
+        return thinned_model

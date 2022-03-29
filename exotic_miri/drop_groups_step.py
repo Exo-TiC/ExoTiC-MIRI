@@ -37,7 +37,7 @@ class DropGroupsStep(Step):
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
                 self.log.error('Input is a {} which was not expected for '
-                               'drop_group_step, skipping step.'.format(
+                               'drop_groups_step, skipping step.'.format(
                                 str(type(input_model))))
                 thinned_model.meta.cal_step.drop_groups = 'SKIPPED'
                 return thinned_model
@@ -45,7 +45,7 @@ class DropGroupsStep(Step):
             # Check the observation mode.
             if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
                 self.log.error('Observation is a {} which is not supported '
-                               'by ExoTic-MIRIs drop_group_step, skipping '
+                               'by ExoTic-MIRIs drop_groups_step, skipping '
                                'step.'.format(input_model.meta.exposure.type))
                 thinned_model.meta.cal_step.drop_groups = 'SKIPPED'
                 return thinned_model
@@ -66,7 +66,7 @@ class DropGroupsStep(Step):
 
             # Compute wanted groups.
             current_groups = np.arange(0, current_n_groups, 1)
-            wanted_groups = current_groups[~np.isin(current_groups, self.ngroups)]
+            wanted_groups = current_groups[~np.isin(current_groups, self.groups)]
 
             # Drop groups.
             thinned_model.data = thinned_model.data[:, wanted_groups, :, :]
