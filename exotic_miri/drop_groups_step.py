@@ -12,7 +12,7 @@ class DropGroupsStep(Step):
     """
 
     spec = """
-    groups = int_list()  #  groups to drop, zero-indexed.
+    drop_groups = int_list(default=None)  #  groups to drop, zero-indexed.
     """
 
     def process(self, input):
@@ -51,8 +51,8 @@ class DropGroupsStep(Step):
                 return thinned_model
 
             # Check groups to drop exist.
-            min_g_drop = np.min(self.groups)
-            max_g_drop = np.max(self.groups)
+            min_g_drop = np.min(self.drop_groups)
+            max_g_drop = np.max(self.drop_groups)
             current_n_groups = thinned_model.meta.exposure.ngroups
             if min_g_drop < 0 or max_g_drop > current_n_groups - 1:
                 self.log.error('Not all groups listed for dropping exist, req'
@@ -66,7 +66,7 @@ class DropGroupsStep(Step):
 
             # Compute wanted groups.
             current_groups = np.arange(0, current_n_groups, 1)
-            wanted_groups = current_groups[~np.isin(current_groups, self.groups)]
+            wanted_groups = current_groups[~np.isin(current_groups, self.drop_groups)]
 
             # Drop groups.
             thinned_model.data = thinned_model.data[:, wanted_groups, :, :]

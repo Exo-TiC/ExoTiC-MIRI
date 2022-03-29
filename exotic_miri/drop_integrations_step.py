@@ -14,7 +14,7 @@ class DropIntegrationsStep(Step):
     """
 
     spec = """
-    integrations = int_list()  #  integrations to drop, zero-indexed.
+    drop_integrations = int_list(default=None)  #  integrations to drop, zero-indexed.
     """
 
     def process(self, input):
@@ -54,8 +54,8 @@ class DropIntegrationsStep(Step):
                 return thinned_model
 
             # Check integrations to drop exist within data chunk.
-            min_i_drop = np.min(self.integrations)
-            max_i_drop = np.max(self.integrations)
+            min_i_drop = np.min(self.drop_integrations)
+            max_i_drop = np.max(self.drop_integrations)
             current_n_integrations = thinned_model.data.shape[0]
             if min_i_drop < 0 or max_i_drop > current_n_integrations - 1:
                 self.log.error('Not all integrations listed for dropping exis'
@@ -71,7 +71,7 @@ class DropIntegrationsStep(Step):
             # Compute wanted integrations.
             current_integrations = np.arange(0, current_n_integrations, 1)
             wanted_integrations = current_integrations[~np.isin(
-                current_integrations, self.integrations)]
+                current_integrations, self.drop_integrations)]
 
             # Drop integrations.
             thinned_model.data = thinned_model.data[
