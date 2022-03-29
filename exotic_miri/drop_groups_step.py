@@ -12,7 +12,7 @@ class DropGroupsStep(Step):
     """
 
     spec = """
-    drop_groups = int_list(default=None)  #  groups to drop, zero-indexed.
+    drop_groups = int_list(default=None)  # groups to drop, zero-indexed.
     """
 
     def process(self, input):
@@ -81,5 +81,6 @@ class DropGroupsStep(Step):
             thinned_model.meta.exposure.integration_time = \
                 thinned_model.meta.exposure.integration_time * span_decrease_f
             thinned_model.meta.exposure.ngroups = thinned_model.data.shape[1]
+            thinned_model.meta.cal_step.drop_groups = 'COMPLETE'
 
         return thinned_model

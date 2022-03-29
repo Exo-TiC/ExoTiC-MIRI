@@ -1,3 +1,4 @@
+import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
 

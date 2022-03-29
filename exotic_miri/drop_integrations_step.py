@@ -14,7 +14,7 @@ class DropIntegrationsStep(Step):
     """
 
     spec = """
-    drop_integrations = int_list(default=None)  #  integrations to drop, zero-indexed.
+    drop_integrations = int_list(default=None)  # integrations to drop, zero-indexed.
     """
 
     def process(self, input):
@@ -85,5 +85,6 @@ class DropIntegrationsStep(Step):
             thinned_model.meta.nints = thinned_model.data.shape[0]
             thinned_model.meta.nints_file = thinned_model.data.shape[0]
             thinned_model.meta.exposure.nints = thinned_model.data.shape[0]
+            thinned_model.meta.cal_step.drop_integrations = 'COMPLETE'
 
         return thinned_model
