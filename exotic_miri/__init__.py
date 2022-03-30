@@ -1,9 +1,11 @@
 __all__ = [
-    'RegroupStep',
-    'DropGroupsStep',
     'DropIntegrationsStep',
+    'DropGroupsStep',
+    'RegroupStep',
+    'ReferencePixelStep',
 ]
 
-from .regroup_step import RegroupStep
-from .drop_groups_step import DropGroupsStep
 from .drop_integrations_step import DropIntegrationsStep
+from .drop_groups_step import DropGroupsStep
+from .regroup_step import RegroupStep
+from .reference_pixel_step import ReferencePixelStep

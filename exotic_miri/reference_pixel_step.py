@@ -61,7 +61,7 @@ class ReferencePixelStep(Step):
                 int_ims = integration - integration[0]
 
                 # Compute and subtract the corrections.
-                # todo: mask flagged ref pixels.
+                # todo: mask/replace flagged ref pixels.
                 int_ims -= self.compute_reference_pixel_correction(int_ims)
 
                 # Add first group back to all groups.
