@@ -63,7 +63,7 @@ class Extract1dStep(Step):
             read_noise_model_path = self.get_reference_file(
                 input_model, 'readnoise')
             with datamodels.open(read_noise_model_path) as read_noise_model:
-                read_noise_data = self.get_miri_subarray_data(
+                read_noise_data = self._get_miri_subarray_data(
                     sci_model, read_noise_model)
                 if read_noise_data is None:
                     sci_model.meta.cal_step.extract_1d = 'SKIPPED'
@@ -72,7 +72,7 @@ class Extract1dStep(Step):
             # Get gain data from reference file.
             gain_model_path = self.get_reference_file(input_model, 'gain')
             with datamodels.open(gain_model_path) as gain_model:
-                gain_data = self.get_miri_subarray_data(
+                gain_data = self._get_miri_subarray_data(
                     sci_model, gain_model)
                 if gain_data is None:
                     sci_model.meta.cal_step.extract_1d = 'SKIPPED'
@@ -86,10 +86,10 @@ class Extract1dStep(Step):
             # Background/sky subtract science data.
             sci_data_sub = self.compute_bkg_subtracted_data(
                 sci_model.data, sci_model.err)
-            return
             if sci_data_sub is None:
                 sci_model.meta.cal_step.extract_1d = 'SKIPPED'
                 return sci_model
+            return
 
             # Extract 1d spectra.
             spectra = self.extract_1d_spectra(
@@ -106,7 +106,7 @@ class Extract1dStep(Step):
 
         return
 
-    def get_miri_subarray_data(self, sci_model, ref_model):
+    def _get_miri_subarray_data(self, sci_model, ref_model):
         """ Cutout data corresponding to MIRI subarray. """
         if sci_model.data.shape[1:] == ref_model.data.shape:
             return ref_model.data
@@ -127,12 +127,12 @@ class Extract1dStep(Step):
         bkg_data = sci_data[:, :, bkg_cols]
 
         # Iterate integrations.
+        self.log.info('Computing background.')
         for idx_int, integration in enumerate(bkg_data):
 
             if self.bkg_algo == 'constant':
-                bkg = np.mean(stats.sigmaclip(integration, low=5.0,
-                                              high=5.0)[0])
-                print(bkg)
+                bkg = np.mean(stats.sigmaclip(
+                    integration, low=5.0, high=5.0)[0])
                 sci_data_sub[idx_int, :, :] -= bkg
 
             elif self.bkg_algo == 'polynomial':
@@ -144,34 +144,25 @@ class Extract1dStep(Step):
                     bkg.append(np.polyval(p_coeff, all_cols))
 
                     if draw:
-                        fig = plt.figure(figsize=(8, 7))
-                        ax1 = fig.add_subplot(111)
-                        ax1.scatter(bkg_cols, int_row, s=10,
-                                    c='#000000', label='Bkg pixels, row={}.'
-                                    .format(idx_row))
-                        ax1.plot(all_cols, np.polyval(p_coeff, all_cols),
-                                 c='#bc5090', label='Poly fit, order={}.'
-                                 .format(self.bkg_poly_order))
-                        ax1.set_xlabel('Pixel row')
-                        ax1.set_ylabel('DN/s')
-                        plt.tight_layout()
-                        plt.show()
+                        self._draw_bkg_poly_fits(
+                            bkg_cols, int_row, all_cols,
+                            np.polyval(p_coeff, all_cols),
+                            idx_row)
 
                 bkg = np.array(bkg)
                 if self.bkg_smoothing_length is not None:
-                    bkg = self.median_smooth_per_column(bkg)
-
+                    bkg = self._median_smooth_per_column(bkg)
                 sci_data_sub[idx_int, :, :] -= bkg
 
             else:
                 self.log.error('Background algorithm not supported. see '
                                'bkg_algo = option("constant", "polynomia'
                                'l", default="polynomial")')
-                return
+                return None
 
         return sci_data_sub
 
-    def median_smooth_per_column(self, bkg):
+    def _median_smooth_per_column(self, bkg):
         """ Median smooth data per column. """
         sm_bkg = np.copy(bkg)
         n_rows = bkg.shape[0]
@@ -186,6 +177,19 @@ class Extract1dStep(Step):
                 bkg[start_row:end_row + 1, :], axis=0)
 
         return sm_bkg
+
+    def _draw_bkg_poly_fits(self, x_data, y_data, x_model, y_model, idx_row):
+        """ Draw the polynomial fits to the background. """
+        fig = plt.figure(figsize=(8, 7))
+        ax1 = fig.add_subplot(111)
+        ax1.scatter(x_data, y_data, s=10, c='#000000',
+                    label='Bkg pixels, row={}.'.format(idx_row))
+        ax1.plot(x_model, y_model, c='#bc5090',
+                 label='Poly fit, order={}.'.format(self.bkg_poly_order))
+        ax1.set_xlabel('Pixel row')
+        ax1.set_ylabel('DN/s')
+        plt.tight_layout()
+        plt.show()
 
     def extract_1d_spectra(self, D, V, V_0, Q):
         """ Extract 1d spectra from bkg subtracted science data. """

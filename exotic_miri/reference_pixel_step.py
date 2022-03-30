@@ -82,7 +82,7 @@ class ReferencePixelStep(Step):
                     (1, int_ims.shape[1], int(int_ims.shape[2] / 4)))
             else:
                 return np.tile(
-                    self.median_smooth_per_column(ref_pixels),
+                    self._median_smooth_per_column(ref_pixels),
                     (1, 1, int(int_ims.shape[2] / 4)))
         else:
             odd_even_medians = np.copy(ref_pixels)
@@ -94,14 +94,14 @@ class ReferencePixelStep(Step):
                 return np.tile(
                     odd_even_medians, (1, 1, int(int_ims.shape[2] / 4)))
             else:
-                odd_even_medians[:, 0::2, :] = self.median_smooth_per_column(
+                odd_even_medians[:, 0::2, :] = self._median_smooth_per_column(
                     odd_even_medians[:, 0::2, :])
-                odd_even_medians[:, 1::2, :] = self.median_smooth_per_column(
+                odd_even_medians[:, 1::2, :] = self._median_smooth_per_column(
                     odd_even_medians[:, 1::2, :])
                 return np.tile(
                     odd_even_medians, (1, 1, int(int_ims.shape[2] / 4)))
 
-    def median_smooth_per_column(self, ref_pixels):
+    def _median_smooth_per_column(self, ref_pixels):
         """ Median smooth data per column. """
         sm_ref_pixels = np.copy(ref_pixels)
         n_rows = ref_pixels.shape[1]
