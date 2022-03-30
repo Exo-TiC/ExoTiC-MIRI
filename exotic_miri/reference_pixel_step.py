@@ -1,3 +1,4 @@
+import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
 
@@ -53,23 +54,65 @@ class ReferencePixelStep(Step):
                 rpc_model.meta.cal_step.refpix = 'SKIPPED'
                 return rpc_model
 
-            # Do reference pixel correction.
             # Iterate integrations.
-            # Subtract first group from all groups.
-            # Compute the corrections.
-            ref_pix_corr = self.compute_reference_pixel_correction()
-            # Subtract the corrections.
-            # Add first group back to all groups.
+            for idx_int, integration in enumerate(rpc_model.data):
+
+                # Subtract first group from all groups.
+                int_ims = integration - integration[0]
+
+                # Compute and subtract the corrections.
+                # todo: mask flagged ref pixels.
+                int_ims -= self.compute_reference_pixel_correction(int_ims)
+
+                # Add first group back to all groups.
+                rpc_model.data[idx_int] = int_ims + integration[0]
 
             # Update meta.
             rpc_model.meta.cal_step.refpix = 'COMPLETE'
 
         return rpc_model
 
-    def compute_reference_pixel_correction(self):
-        """ Compute the reference pixel correction. """
-        # Compute per amplifier per odd/even rows and smooth ref pix values.
-        # Do not include pixels with flags.
-        # Iteratively sigma clip these values perhaps.
-        # Return the correction grid for the integration.
-        return
+    def compute_reference_pixel_correction(self, int_ims):
+        """ Compute the reference pixel correction tiles. """
+        ref_pixels = int_ims[:, :, 0:4]
+        if not self.odd_even_rows:
+            if self.smoothing_length is None:
+                return np.tile(
+                    np.median(ref_pixels, axis=1)[:, np.newaxis, :],
+                    (1, int_ims.shape[1], int(int_ims.shape[2] / 4)))
+            else:
+                return np.tile(
+                    self.median_smooth_per_column(ref_pixels),
+                    (1, 1, int(int_ims.shape[2] / 4)))
+        else:
+            odd_even_medians = np.copy(ref_pixels)
+            if self.smoothing_length is None:
+                odd_even_medians[:, 0::2, :] = np.median(
+                    odd_even_medians[:, 0::2, :], axis=1)[:, np.newaxis, :]
+                odd_even_medians[:, 1::2, :] = np.median(
+                    odd_even_medians[:, 1::2, :], axis=1)[:, np.newaxis, :]
+                return np.tile(
+                    odd_even_medians, (1, 1, int(int_ims.shape[2] / 4)))
+            else:
+                odd_even_medians[:, 0::2, :] = self.median_smooth_per_column(
+                    odd_even_medians[:, 0::2, :])
+                odd_even_medians[:, 1::2, :] = self.median_smooth_per_column(
+                    odd_even_medians[:, 1::2, :])
+                return np.tile(
+                    odd_even_medians, (1, 1, int(int_ims.shape[2] / 4)))
+
+    def median_smooth_per_column(self, ref_pixels):
+        """ Median smooth data per column. """
+        sm_ref_pixels = np.copy(ref_pixels)
+        n_rows = ref_pixels.shape[1]
+        sm_radius = int((self.smoothing_length - 1) / 2)
+        for idx_row in range(n_rows):
+            # Define window.
+            start_row = max(0, idx_row - sm_radius)
+            end_row = min(n_rows - 1, idx_row + sm_radius)
+
+            # Compute median in window.
+            sm_ref_pixels[:, idx_row, :] = np.median(
+                ref_pixels[:, start_row:end_row + 1, :], axis=1)
+
+        return sm_ref_pixels
