@@ -105,17 +105,11 @@ class Extract1dStep(Step):
                 V_0=read_noise_data**2,
                 Q=gain_data)
 
-            return spectra, variances
-            for spec in spectra[0:10]:
-                plt.plot(np.arange(spec.shape[0]), spec)
-            plt.show()
-
-            # TODO: build output data type, copy meta data,
-            #  set spectra flux, pixels, and wavelengths.
-            output_model = datamodels.MultiSpecModel()
+            # Package results.
+            output_model = self._package_compatible_multispec_datamodel(
+                spectra, variances, input_model)
 
             # Update meta.
-            # Todo: update units.
             output_model.meta.cal_step.extract_1d = 'COMPLETE'
             output_model.meta.filetype = '1d spectrum'
 
@@ -441,3 +435,32 @@ class Extract1dStep(Step):
                        axis=1) / np.sum(P**2 / V_rev, axis=1)
         var_f_opt = np.sum(P, axis=1) / np.sum(P**2 / V_rev, axis=1)
         return f_opt, var_f_opt
+
+    def _package_compatible_multispec_datamodel(self, spec, var, input_model):
+        """ Build a multispec data structure compatible w/ STScI pipeline. """
+        # Instantiate multispecmodel.
+        output_model = datamodels.MultiSpecModel()
+        if hasattr(input_model, 'int_times'):
+            output_model.int_times = input_model.int_times.copy()
+        output_model.update(input_model, only='PRIMARY')
+
+        # Iterate spectra appending as tables.
+        for flux, flux_error in zip(spec, var**0.5):
+
+            # Todo: get wavelength and pixel auto.
+            pixel = np.empty(flux.shape[0])
+            wavelength = np.empty(flux.shape[0])
+            otab = np.array(list(zip(pixel, wavelength, flux, flux_error)),
+                            dtype=datamodels.SpecModel().spec_table.dtype)
+            spec = datamodels.SpecModel(spec_table=otab)
+            # spec.meta.wcs = spec_wcs.create_spectral_wcs(ra, dec, wavelength)
+            spec.spec_table.columns['wavelength'].unit = 'um'
+            spec.spec_table.columns['flux'].unit = 'DN'
+            spec.spec_table.columns['flux_error'].unit = 'DN'
+
+            # Todo. Investigate aperture correction (apcorr ref file).
+
+            # Append.
+            output_model.spec.append(spec)
+
+        return output_model
