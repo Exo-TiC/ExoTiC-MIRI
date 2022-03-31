@@ -16,7 +16,11 @@ class TestExtract1d(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestExtract1d, self).__init__(*args, **kwargs)
-        sci, err = self._make_miri_ish_data_chunk(draw=False)
+
+        # Synthesise test data.
+        self.spec_trace_signal_amp = 25000.
+        inj, sci, err = self._make_miri_ish_data_chunk(draw=False)
+        self.ground_truth_spectra = inj
 
         # Build test CubeModel data structure.
         self.test_cube_model = datamodels.CubeModel()
@@ -58,7 +62,6 @@ class TestExtract1d(unittest.TestCase):
         psf_locs = np.linspace(35.5, 36.5, n_ints) \
                    + np.random.normal(loc=0., scale=0.1, size=n_ints)
         psf_sigmas = np.linspace(1.25, 1.35, n_rows)
-        spec_trace_signal_amp = 25000
         spec_trace_sigma = 75.
         spec_trace_locs = np.linspace(210.5, 211.5, n_ints) \
                           + np.random.normal(loc=0., scale=0.1, size=n_ints)
@@ -73,13 +76,13 @@ class TestExtract1d(unittest.TestCase):
         gain = 5.5 * np.ones((n_rows, n_cols))
 
         # Generate integrations.
+        injections = []
         integrations = []
         errors = []
         for i in range(n_ints):
 
             # Build psf.
             int_sci = np.zeros(sci.shape)
-            int_err = np.zeros(err.shape)
             for row_idx in row_pixel_vals:
                 int_sci[row_idx] = self._gaussian(
                     col_pixel_vals, psf_locs[i], psf_sigmas[row_idx])
@@ -89,12 +92,15 @@ class TestExtract1d(unittest.TestCase):
                 row_pixel_vals, spec_trace_locs[i], spec_trace_sigma)
             int_sci *= spec_trace[:, np.newaxis]
 
-            # Add signal and convert to rate units.
-            int_sci *= spec_trace_signal_amp / np.max(int_sci)
+            # Add signal.
+            int_sci *= self.spec_trace_signal_amp / np.max(int_sci)
+            injections.append(np.sum(int_sci / gain, axis=1))
             int_sci += bkg
             int_sci += rn
             int_sci_dn = np.random.poisson(int_sci) / gain
             int_err_dn = (rn**2 + np.abs(int_sci_dn) / gain)**0.5
+
+            # Convert to rate units.
             int_sci_dn_per_s = int_sci_dn / integration_time
             int_err_dn_per_s = int_err_dn / integration_time
 
@@ -112,7 +118,7 @@ class TestExtract1d(unittest.TestCase):
                 ax1.set_zlabel('DN/s')
                 plt.show()
 
-        return np.array(integrations), np.array(errors)
+        return np.array(injections), np.array(integrations), np.array(errors)
 
     def _gaussian(self, x_vals, mu, sigma):
         """ Gaussian/normal distribution function. """
@@ -125,12 +131,21 @@ class TestExtract1d(unittest.TestCase):
         spectra_model = Extract1dStep().call(
             self.test_cube_model,
             bkg_region=[8, 22, 52, 70],
-            bkg_algo='constant',
-            bkg_poly_order=1,
+            bkg_algo='polynomial',
+            bkg_poly_order=0,
             bkg_smoothing_length=50,
             extract_region_width=19,
             extract_algo='optimal',
             extract_poly_order=8)
+
+        # Admin checks.
+
+
+        # Check if recover the injected spectra.
+        spec, var = spectra_model
+        residuals = spec - self.ground_truth_spectra
+        deviations = np.abs(residuals) / var**0.5
+        self.assertLess(np.max(deviations), 10.)
 
 
 if __name__ == '__main__':

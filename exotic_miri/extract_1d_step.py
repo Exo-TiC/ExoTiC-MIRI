@@ -105,6 +105,7 @@ class Extract1dStep(Step):
                 V_0=read_noise_data**2,
                 Q=gain_data)
 
+            return spectra, variances
             for spec in spectra[0:10]:
                 plt.plot(np.arange(spec.shape[0]), spec)
             plt.show()
@@ -359,15 +360,13 @@ class Extract1dStep(Step):
 
     def _extract_standard_spectra(self, D_S, V, region_start_idx,
                                   region_end_idx):
-        """ Extract standard spectrum f and var_f: sum counts in aperture. """
+        """ f and var_f as per Horne 1986 table 1 (step 4). """
         if D_S.ndim == 2:
-            # f and var_f as per Horne 1986 table 1.
             f = np.sum(D_S[:, region_start_idx:region_end_idx], axis=1)
             var_f = np.sum(V[:, region_start_idx:region_end_idx], axis=1)
             return f, var_f
 
         elif D_S.ndim == 3:
-            # f and var_f as per Horne 1986 table 1.
             f = np.sum(D_S[:, :, region_start_idx:region_end_idx],
                        axis=2)
             var_f = np.sum(V[:, :, region_start_idx:region_end_idx],
@@ -380,8 +379,7 @@ class Extract1dStep(Step):
 
     def _construct_spatial_profile(self, D_S, V, region_start_idx,
                                    region_end_idx, draw=False):
-        """ Construct spatial profile p of 2d spectra. """
-        # P as per Horne 1986 table 1.
+        """ P as per Horne 1986 table 1 (step 5). """
         P = []
 
         # Iterate columns.
@@ -430,8 +428,7 @@ class Extract1dStep(Step):
 
     def _revise_variance_estimates(self, f, S, P, V_0, Q, region_start_idx,
                                    region_end_idx):
-        """ Revise variance estimates V revised. """
-        # V revised as per Horne 1986 table 1.
+        """ V revised as per Horne 1986 table 1 (step 6). """
         V_rev = V_0[:, region_start_idx:region_end_idx] + np.abs(
             f[:, np.newaxis] * P + S[:, region_start_idx:region_end_idx]) \
                 / Q[:, region_start_idx:region_end_idx]
@@ -439,8 +436,7 @@ class Extract1dStep(Step):
 
     def _extract_optimal_spectrum(self, D_S, P, V_rev, region_start_idx,
                                   region_end_idx):
-        """ Extract optimal spectrum f optimal. """
-        # f optimal as per Horne 1986 table 1.
+        """ f optimal as per Horne 1986 table 1 (step 8). """
         f_opt = np.sum(P * D_S[:, region_start_idx:region_end_idx] / V_rev,
                        axis=1) / np.sum(P**2 / V_rev, axis=1)
         var_f_opt = np.sum(P, axis=1) / np.sum(P**2 / V_rev, axis=1)
