@@ -15,12 +15,12 @@ def amp_gaussian(x_vals, a, mu, sigma):
     return y
 
 # Reproducible.
-np.random.seed(111)
+np.random.seed(116)
 
 # Config.
 n_rows = 416
 n_cols = 68
-n_ints = 100
+n_ints = 2000
 row_pixel_vals = np.arange(0, n_rows)
 col_pixel_vals = np.arange(0, n_cols)
 psf_locs = np.linspace(33.0, 35.0, n_ints) + np.random.normal(loc=0., scale=0.1, size=n_ints)
@@ -318,3 +318,53 @@ for lc_box, lc_opt, lc_g_opt in zip(lcs_box, lcs_opt, lcs_g_opt):
           np.std(lc_g_opt / np.median(lc_g_opt)))
     plt.ylim(0.95, 1.05)
     plt.show()
+
+
+# White or red noise plots.
+def bin_and_sigma(lc_data, time_bin_sizes):
+    sigmas_bins = []
+    for tbs in time_bin_sizes:
+        bin_edges = np.arange(0, n_ints + tbs, tbs)
+        binned_data = []
+        for bs, be in zip(bin_edges, bin_edges[1:]):
+            bs_check = int(bs)
+            be_check = int(min(n_ints, be))
+            binned_data.append(np.mean(lc_data[bs_check:be_check]))
+        sigmas_bins.append(np.std(binned_data))
+
+    return np.array(sigmas_bins)
+
+
+time_bin_sizes = np.logspace(0, 2, 100)
+
+lcfne_box = np.array(lcs_box[3]) / np.median(lcs_box[3])
+sigmas_box = bin_and_sigma(lcfne_box, time_bin_sizes)
+lcfne_opt = np.array(lcs_opt[3]) / np.median(lcs_opt[3])
+sigmas_opt = bin_and_sigma(lcfne_opt, time_bin_sizes)
+lcfne_g_opt = np.array(lcs_g_opt[3]) / np.median(lcs_g_opt[3])
+sigmas_g_opt = bin_and_sigma(lcfne_g_opt, time_bin_sizes)
+
+sigmas_box *= 1e6
+sigmas_opt *= 1e6
+sigmas_g_opt *= 1e6
+
+plt.scatter(time_bin_sizes, sigmas_box, label='Box')
+plt.scatter(time_bin_sizes, sigmas_opt, label='Optimal')
+plt.scatter(time_bin_sizes, sigmas_g_opt, label='New')
+
+# plt.plot(time_bin_sizes, (1 / time_bin_sizes**0.5) + sigmas_box[0] - 1, ls='--')
+# plt.plot(time_bin_sizes, (1 / time_bin_sizes**0.5) + sigmas_opt[0] - 1, ls='--')
+# plt.plot(time_bin_sizes, (1 / time_bin_sizes**0.5) + sigmas_g_opt[0] - 1, ls='--')
+
+plt.plot(time_bin_sizes, sigmas_box[0] / time_bin_sizes**0.5, ls='--')
+plt.plot(time_bin_sizes, sigmas_opt[0] / time_bin_sizes**0.5, ls='--')
+plt.plot(time_bin_sizes, sigmas_g_opt[0] / time_bin_sizes**0.5, ls='--')
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlabel('Bin size / number dp')
+plt.ylabel('$\sigma$ / ppm')
+plt.legend(loc='upper right')
+
+plt.tight_layout()
+plt.show()

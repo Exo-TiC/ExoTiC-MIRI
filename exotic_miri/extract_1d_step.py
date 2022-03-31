@@ -2,14 +2,18 @@ import numpy as np
 from scipy import stats
 from jwst import datamodels
 from jwst.stpipe import Step
+from scipy import interpolate
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 
 class Extract1dStep(Step):
     """ Extract 1d spectra.
 
     A step that will sky subtract, trace find, and extract 1d spectra
-    from the 2d rate images using various algorithms.
+    from the 2d rate images using various algorithms. This step assumes
+    the photom step has not been run, or at least input data units are
+    DN/s.
 
     """
 
@@ -79,32 +83,36 @@ class Extract1dStep(Step):
                     return sci_model
 
             # Convert from DN/s (rate images) to DN.
-            sci_model.data = sci_model.data * sci_model.meta.exposure.integration_time
-            sci_model.err = sci_model.err * sci_model.meta.exposure.integration_time
+            sci_model.data = sci_model.data \
+                             * sci_model.meta.exposure.integration_time
+            sci_model.err = sci_model.err \
+                            * sci_model.meta.exposure.integration_time
             sci_model.meta.bunit_data = 'DN'
 
             # Background/sky subtract science data.
-            sci_data_sub = self.compute_bkg_subtracted_data(
+            sci_data_sub_bkg = self.compute_bkg_subtracted_data(
                 sci_model.data, sci_model.err)
-            if sci_data_sub is None:
+            if sci_data_sub_bkg is None:
                 sci_model.meta.cal_step.extract_1d = 'SKIPPED'
                 return sci_model
-            return
 
             # Extract 1d spectra.
             spectra = self.extract_1d_spectra(
-                D=sci_data_sub,
+                D=sci_data_sub_bkg,
                 V=sci_model.err,
                 V_0=read_noise_data,
                 Q=gain_data)
 
-            # TODO: build output data type.
+            # TODO: build output data type, copy meta data,
+            #  set spectra flux, pixels, and wavelengths.
+            output_model = datamodels.MultiSpecModel()
 
             # Update meta.
-            sci_model.meta.cal_step.extract_1d = 'COMPLETE'
-            sci_model.meta.filetype = '1d spectrum'
+            # Todo: update units.
+            output_model.meta.cal_step.extract_1d = 'COMPLETE'
+            output_model.meta.filetype = '1d spectrum'
 
-        return
+        return output_model
 
     def _get_miri_subarray_data(self, sci_model, ref_model):
         """ Cutout data corresponding to MIRI subarray. """
@@ -120,7 +128,7 @@ class Extract1dStep(Step):
     def compute_bkg_subtracted_data(self, sci_data, sci_err, draw=False):
         """ Compute background/sky subtracted science data. """
         # Cutout data in specified background region.
-        sci_data_sub = np.zeros(sci_data.shape)
+        sci_data_sub_bkg = np.copy(sci_data)
         all_cols = np.arange(0, sci_data.shape[2])
         bkg_cols = np.r_[self.bkg_region[0]:self.bkg_region[1],
                          self.bkg_region[2]:self.bkg_region[3]]
@@ -133,7 +141,7 @@ class Extract1dStep(Step):
             if self.bkg_algo == 'constant':
                 bkg = np.mean(stats.sigmaclip(
                     integration, low=5.0, high=5.0)[0])
-                sci_data_sub[idx_int, :, :] -= bkg
+                sci_data_sub_bkg[idx_int, :, :] -= bkg
 
             elif self.bkg_algo == 'polynomial':
                 bkg = []
@@ -152,7 +160,7 @@ class Extract1dStep(Step):
                 bkg = np.array(bkg)
                 if self.bkg_smoothing_length is not None:
                     bkg = self._median_smooth_per_column(bkg)
-                sci_data_sub[idx_int, :, :] -= bkg
+                sci_data_sub_bkg[idx_int, :, :] -= bkg
 
             else:
                 self.log.error('Background algorithm not supported. see '
@@ -160,7 +168,7 @@ class Extract1dStep(Step):
                                'l", default="polynomial")')
                 return None
 
-        return sci_data_sub
+        return sci_data_sub_bkg
 
     def _median_smooth_per_column(self, bkg):
         """ Median smooth data per column. """
