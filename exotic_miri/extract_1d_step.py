@@ -97,11 +97,15 @@ class Extract1dStep(Step):
                 return sci_model
 
             # Extract 1d spectra.
-            spectra = self.extract_1d_spectra(
+            spectra, variances = self.extract_1d_spectra(
                 D=sci_data_sub_bkg,
-                V=sci_model.err,
-                V_0=read_noise_data,
+                V=sci_model.err**2,
+                V_0=read_noise_data**2,
                 Q=gain_data)
+
+            for spec in spectra[0:10]:
+                plt.plot(spec)
+            plt.show()
 
             # TODO: build output data type, copy meta data,
             #  set spectra flux, pixels, and wavelengths.
@@ -135,7 +139,9 @@ class Extract1dStep(Step):
         bkg_data = sci_data[:, :, bkg_cols]
 
         # Iterate integrations.
-        self.log.info('Computing background.')
+        self.log.info('Estimating and subtracting background for {} '
+                      'integrations using the `{}` algorithm.'.format(
+                       sci_data.shape[0], self.bkg_algo))
         for idx_int, integration in enumerate(bkg_data):
 
             if self.bkg_algo == 'constant':
@@ -163,7 +169,7 @@ class Extract1dStep(Step):
                 sci_data_sub_bkg[idx_int, :, :] -= bkg
 
             else:
-                self.log.error('Background algorithm not supported. see '
+                self.log.error('Background algorithm not supported. See '
                                'bkg_algo = option("constant", "polynomia'
                                'l", default="polynomial")')
                 return None
@@ -201,20 +207,137 @@ class Extract1dStep(Step):
 
     def extract_1d_spectra(self, D, V, V_0, Q):
         """ Extract 1d spectra from bkg subtracted science data. """
-        # Potentially we want to cut a border away from the edge too.
-        # Then on shift-reg-grid we cut to the data strip we care about.
-
+        self.log.info('Extracting 1d spectra for {} integrations using the '
+                      '`{}` algorithm.'.format(D.shape[0], self.extract_algo))
         if self.extract_algo == 'box':
-            self.box_extract()
+            return self._box_extract(D, V)
 
-        # Option 2.
-        # Optimal extraction per frame.
+        elif self.extract_algo == 'optimal':
+            f, var_f = self._box_extract(D, V)
+            return f, var_f
 
-        # Option 3.
-        # Global optimal extraction.
+        elif self.extract_algo == 'go':
+            # NB. experimental Global Optimal extraction
+            # Potentially we want to cut a border away from the edge too.
+            # Then on shift-reg-grid we cut to the data strip we care about.
+            return self._box_extract(D, V)
 
-        return []
+        else:
+            self.log.error('Extract 1d algorithm not supported. See '
+                           'extract_algo = option("box", "optimal", '
+                           '"go", default="box").')
+            return None, None
 
-    def box_extract(self, D, ):
+    def _box_extract(self, D, V):
         """ Extract with fixed-width top-hat aperture. """
+        # Iterate integrations.
+        all_cols = np.arange(0, D.shape[2])
+        psf_centres = []
+        for idx_int, integration in enumerate(D):
 
+            # Find spectral trace location in x (column position). Assumes
+            # not rotation, ie. one x position for entire trace. Stack rows
+            # for master psf of integration and fit Gaussian for the centre.
+            psf_int = np.sum(integration, axis=0)
+            psf_centres.append(self._get_fitted_gaussian_centre(
+                all_cols, psf_int, sigma_guess=3., fit_region_width=11))
+
+        # Extract standard spectra.
+        f, var_f = self._extract_standard_spectra(D, V, np.array(psf_centres))
+
+        return f, var_f
+
+    def _get_fitted_gaussian_centre(self, xs, ys, sigma_guess=3.,
+                                    fit_region_width=None, draw=False):
+        """ Get centre by fitting a Gaussian function. """
+        if fit_region_width is not None:
+            # Trim region for fitting.
+            idx_peak = np.argmax(ys)
+            fit_region_radius = int((fit_region_width - 1) / 2)
+            xs = xs[idx_peak - fit_region_radius:
+                    idx_peak + fit_region_radius + 1]
+            ys = ys[idx_peak - fit_region_radius:
+                    idx_peak + fit_region_radius + 1]
+
+        try:
+            # Least squares fit data.
+            popt, pcov = curve_fit(
+                self._amp_gaussian, xs, ys,
+                p0=[np.max(ys), xs[np.argmax(ys)], sigma_guess])
+        except ValueError as err:
+            self.log.error('Gaussian fitting to find centre failed.')
+            return None
+
+        if draw:
+            self._draw_gaussian_centre_fits(xs, ys, popt)
+
+        return popt[1]
+
+    def _draw_gaussian_centre_fits(self, x_data, y_data, popt):
+        """ Draw Gaussian fits for centre finding. """
+        fig = plt.figure(figsize=(8, 7))
+        ax1 = fig.add_subplot(111)
+        ax1.scatter(x_data, y_data, s=10, c='#000000',
+                    label='Data')
+        xs_hr = np.linspace(np.min(x_data), np.max(x_data), 1000)
+        ax1.plot(xs_hr, self._amp_gaussian(
+            xs_hr, popt[0], popt[1], popt[2]), c='#bc5090',
+                 label='Gaussian fit, mean={}.'.format(popt[1]))
+        ax1.axvline(popt[1], ls='--')
+        ax1.set_xlabel('Pixels')
+        ax1.set_ylabel('DN')
+        plt.tight_layout()
+        plt.show()
+
+    def _amp_gaussian(self, x_vals, a, mu, sigma):
+        """ Scalable Gaussian function. """
+        y = a * np.exp(-(x_vals - mu)**2 / (2. * sigma**2))
+        return y
+
+    def _extract_standard_spectra(self, D, V, psf_centres):
+        """ Extract standard spectrum f: sum counts within aperture. """
+        # Define extraction region by column idxs.
+        extract_region_radius = int((self.extract_region_width - 1) / 2)
+        if isinstance(psf_centres, float):
+
+            # Constant psf across integrations.
+            extract_region_start = int(round(
+                psf_centres - extract_region_radius))
+            extract_region_end = int(round(
+                psf_centres + extract_region_radius + 1))
+
+            # f as per Horne 1986 table 1.
+            f = np.sum(D[:, :, extract_region_start:extract_region_end], axis=2)
+
+            # var_f as per Horne 1986 table 1.
+            var_f = np.sum(V[:, :, extract_region_start:extract_region_end], axis=2)
+
+            return f, var_f
+
+        elif isinstance(psf_centres, np.ndarray):
+
+            # Variable psf across integrations.
+            extract_region_starts = np.rint(
+                psf_centres - extract_region_radius).astype(int)
+            extract_region_ends = np.rint(
+                psf_centres + extract_region_radius + 1).astype(int)
+
+            f = []
+            var_f = []
+            for idx_int in range(D.shape[0]):
+
+                # f as per Horne 1986 table 1.
+                f.append(np.sum(D[idx_int, :,
+                                extract_region_starts[idx_int]:
+                                extract_region_ends[idx_int]], axis=1))
+
+                # var_f as per Horne 1986 table 1.
+                var_f.append(np.sum(V[idx_int, :,
+                                    extract_region_starts[idx_int]:
+                                    extract_region_ends[idx_int]], axis=1))
+
+            return np.array(f), np.array(var_f)
+
+        else:
+            self.log.error('Psf centres input type not recognised.')
+            return None, None
