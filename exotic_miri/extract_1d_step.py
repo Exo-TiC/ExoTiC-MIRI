@@ -41,8 +41,10 @@ class Extract1dStep(Step):
         Returns
         -------
         JWST data model
-            A MultiSpecModel containing extracted 1d spectra, unless the
-            step is skipped in which case `input_model` is returned.
+            A MultiSpecModel containing extracted 1d spectra. The
+            spectra for each integration are packaged as a list of
+            pandas.DataFrames at MultiSpecModel.spectra.
+            If the step is skipped the `input_model` is returned.
         """
         with datamodels.open(input) as input_model:
 
@@ -461,7 +463,7 @@ class Extract1dStep(Step):
                                                 input_model):
         """ Build a multispec data structure compatible w/ STScI pipeline. """
         self.log.info('Packaging results at datamodels.MultiSpecModel'
-                      '.spectra as list of pd.DataFrame.')
+                      '.spectra as list of pandas.DataFrames.')
         # Instantiate MultiSpecModel.
         output_model = datamodels.MultiSpecModel()
 

@@ -160,7 +160,7 @@ class TestExtract1d(unittest.TestCase):
 
     def test_extract_1d_bkg_const_spec_box(self):
         """ Test the extract 1d step: bkg=const, spec=box. """
-        spectra_model = Extract1dStep().call(
+        spectral_model = Extract1dStep().call(
             self.test_cube_model,
             bkg_region=[8, 22, 52, 70],
             bkg_algo='constant',
@@ -171,24 +171,25 @@ class TestExtract1d(unittest.TestCase):
             extract_poly_order=8)
 
         # Admin checks.
-        for ii in range(100):
-            plt.plot(spectra_model.spectra[ii]['wavelengths'],
-                     spectra_model.spectra[ii]['flux'])
-            plt.show()
-            plt.plot(spectra_model.spectra[ii]['pixels'],
-                     spectra_model.spectra[ii]['flux'])
-            plt.show()
-            plt.errorbar(spectra_model.spectra[ii]['pixels'],
-                     spectra_model.spectra[ii]['flux'],
-                         yerr=spectra_model.spectra[ii]['flux_error'])
-            plt.show()
+        # for ii in range(100):
+        #     plt.plot(spectral_model.spectra[ii]['wavelengths'],
+        #              spectral_model.spectra[ii]['flux'])
+        #     plt.show()
+        #     plt.plot(spectral_model.spectra[ii]['pixels'],
+        #              spectral_model.spectra[ii]['flux'])
+        #     plt.show()
+        #     plt.errorbar(spectral_model.spectra[ii]['pixels'],
+        #              spectral_model.spectra[ii]['flux'],
+        #                  yerr=spectral_model.spectra[ii]['flux_error'])
+        #     plt.show()
 
-
-        # # Check if recover the injected spectra.
-        # spec, var = spectra_model
-        # residuals = spec - self.ground_truth_spectra
-        # deviations = np.abs(residuals) / var**0.5
-        # self.assertLess(np.max(deviations), 10.)
+        # Check if recover the injected spectra.
+        for idx_int in range(len(spectral_model.spectra)):
+            recovered_spec = spectral_model.spectra[idx_int]['flux']
+            recovered_sigma = spectral_model.spectra[idx_int]['flux_error']
+            residuals = recovered_spec - self.ground_truth_spectra[idx_int]
+            deviations = np.abs(residuals) / recovered_sigma
+            self.assertLess(np.max(deviations), 10.)
 
 
 if __name__ == '__main__':
