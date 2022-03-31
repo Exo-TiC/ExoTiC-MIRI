@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy import stats
 from jwst import datamodels
 from jwst.stpipe import Step
@@ -105,9 +106,13 @@ class Extract1dStep(Step):
                 V_0=read_noise_data**2,
                 Q=gain_data)
 
+            # Link with WCS: transform pixels to wavelengths.
+            pixels, wavelengths = self._link_world_coordinate_system(
+                input_model)
+
             # Package results.
             output_model = self._package_compatible_multispec_datamodel(
-                spectra, variances, input_model)
+                pixels, wavelengths, spectra, variances, input_model)
 
             # Update meta.
             output_model.meta.cal_step.extract_1d = 'COMPLETE'
@@ -436,31 +441,45 @@ class Extract1dStep(Step):
         var_f_opt = np.sum(P, axis=1) / np.sum(P**2 / V_rev, axis=1)
         return f_opt, var_f_opt
 
-    def _package_compatible_multispec_datamodel(self, spec, var, input_model):
+    def _link_world_coordinate_system(self, input_model):
+        """ Link WCS and find pixels to wavelengths. """
+        # Build wavelength map.
+        row_g, col_g = np.mgrid[0:input_model.data.shape[1],
+                                0:input_model.data.shape[2]]
+        wavelength_map = input_model.meta.wcs(
+            col_g.ravel(), row_g.ravel())[-1]\
+            .reshape(input_model.data.shape[1:])
+
+        # Compute wavelengths as mean within each row.
+        pixels = np.arange(0, input_model.data.shape[1])
+        wavelengths = np.nanmean(wavelength_map, axis=1)
+
+        return pixels, wavelengths
+
+    def _package_compatible_multispec_datamodel(self, pixels, wavelengths,
+                                                spectra, variances,
+                                                input_model):
         """ Build a multispec data structure compatible w/ STScI pipeline. """
-        # Instantiate multispecmodel.
+        self.log.info('Packaging results at datamodels.MultiSpecModel'
+                      '.spectra as list of pd.DataFrame.')
+        # Instantiate MultiSpecModel.
         output_model = datamodels.MultiSpecModel()
+
+        # Copy meta data across.
         if hasattr(input_model, 'int_times'):
             output_model.int_times = input_model.int_times.copy()
         output_model.update(input_model, only='PRIMARY')
 
-        # Iterate spectra appending as tables.
-        for flux, flux_error in zip(spec, var**0.5):
+        # Iterate integrations.
+        output_model.spectra = []
+        for spec_int, var_int in zip(spectra, variances):
 
-            # Todo: get wavelength and pixel auto.
-            pixel = np.empty(flux.shape[0])
-            wavelength = np.empty(flux.shape[0])
-            otab = np.array(list(zip(pixel, wavelength, flux, flux_error)),
-                            dtype=datamodels.SpecModel().spec_table.dtype)
-            spec = datamodels.SpecModel(spec_table=otab)
-            # spec.meta.wcs = spec_wcs.create_spectral_wcs(ra, dec, wavelength)
-            spec.spec_table.columns['wavelength'].unit = 'um'
-            spec.spec_table.columns['flux'].unit = 'DN'
-            spec.spec_table.columns['flux_error'].unit = 'DN'
-
-            # Todo. Investigate aperture correction (apcorr ref file).
-
-            # Append.
-            output_model.spec.append(spec)
+            # Build dataframe.
+            spec_df = pd.DataFrame()
+            spec_df['pixels'] = pixels
+            spec_df['wavelengths'] = wavelengths
+            spec_df['flux'] = spec_int
+            spec_df['flux_error'] = var_int**0.5
+            output_model.spectra.append(spec_df)
 
         return output_model

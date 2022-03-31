@@ -1,4 +1,5 @@
 import os
+import pickle
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,6 +49,37 @@ class TestExtract1d(unittest.TestCase):
         self.test_cube_model.meta.subarray.ystart = 529
         self.test_cube_model.meta.bunit_data = 'DN/S'
         self.test_cube_model.meta.model_type = 'CubeModel'
+        self._set_wcs_from_pickle('jar/test_wcs.p')
+
+    def _set_wcs_from_pickle(self, pickle_path):
+        """ Set meta data associated with wcs. """
+        with open(pickle_path, 'rb') as p:
+            wcs_obj = pickle.load(p)
+            self.test_cube_model.meta.wcs = wcs_obj
+
+        self.test_cube_model.meta.wcsinfo.cdelt1 = 1.0
+        self.test_cube_model.meta.wcsinfo.cdelt2 = 1.0
+        self.test_cube_model.meta.wcsinfo.cdelt3 = 1.0
+        self.test_cube_model.meta.wcsinfo.crpix1 = 0
+        self.test_cube_model.meta.wcsinfo.crpix2 = -528
+        self.test_cube_model.meta.wcsinfo.crpix3 = 0
+        self.test_cube_model.meta.wcsinfo.crval1 = 0.0
+        self.test_cube_model.meta.wcsinfo.crval2 = 0.0
+        self.test_cube_model.meta.wcsinfo.crval3 = 0.0
+        self.test_cube_model.meta.wcsinfo.ctype1 = None
+        self.test_cube_model.meta.wcsinfo.ctype2 = None
+        self.test_cube_model.meta.wcsinfo.ctype3 = None
+        self.test_cube_model.meta.wcsinfo.cunit1 = None
+        self.test_cube_model.meta.wcsinfo.cunit2 = None
+        self.test_cube_model.meta.wcsinfo.cunit3 = None
+        self.test_cube_model.meta.wcsinfo.dec_ref = 0.0
+        self.test_cube_model.meta.wcsinfo.ra_ref = 0.0
+        self.test_cube_model.meta.wcsinfo.roll_ref = -0.0
+        self.test_cube_model.meta.wcsinfo.v2_ref = -378.8320736785982
+        self.test_cube_model.meta.wcsinfo.v3_ref = -344.9445433053003
+        self.test_cube_model.meta.wcsinfo.v3yangle = 0.0
+        self.test_cube_model.meta.wcsinfo.vparity = -1
+        self.test_cube_model.meta.wcsinfo.wcsaxes = 3
 
     def _make_miri_ish_data_chunk(self, draw=False):
         """ Synthesise some MIRI-ish data. """
@@ -139,8 +171,17 @@ class TestExtract1d(unittest.TestCase):
             extract_poly_order=8)
 
         # Admin checks.
-        print(spectra_model)
-        print(type(spectra_model))
+        for ii in range(100):
+            plt.plot(spectra_model.spectra[ii]['wavelengths'],
+                     spectra_model.spectra[ii]['flux'])
+            plt.show()
+            plt.plot(spectra_model.spectra[ii]['pixels'],
+                     spectra_model.spectra[ii]['flux'])
+            plt.show()
+            plt.errorbar(spectra_model.spectra[ii]['pixels'],
+                     spectra_model.spectra[ii]['flux'],
+                         yerr=spectra_model.spectra[ii]['flux_error'])
+            plt.show()
 
 
         # # Check if recover the injected spectra.
