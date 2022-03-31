@@ -125,9 +125,12 @@ class TestExtract1d(unittest.TestCase):
         spectra_model = Extract1dStep().call(
             self.test_cube_model,
             bkg_region=[8, 22, 52, 70],
-            bkg_algo='constant', bkg_poly_order=1,
+            bkg_algo='constant',
+            bkg_poly_order=1,
             bkg_smoothing_length=50,
-            extract_algo='box', extract_region_width=11)
+            extract_region_width=19,
+            extract_algo='optimal',
+            extract_poly_order=8)
 
 
 if __name__ == '__main__':

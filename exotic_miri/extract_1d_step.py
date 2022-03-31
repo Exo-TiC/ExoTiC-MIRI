@@ -24,6 +24,7 @@ class Extract1dStep(Step):
     bkg_smoothing_length = integer(default=None)  # median smooth values over pixel length
     extract_algo = option("box", "optimal", "go", default="box")  # extraction algorithm
     extract_region_width = integer(default=20)  # full width of extraction region
+    extract_poly_order = integer(default=1)  # order of polynomial for optimal extraction
     """
 
     reference_file_types = ['readnoise', 'gain']
@@ -90,21 +91,22 @@ class Extract1dStep(Step):
             sci_model.meta.bunit_data = 'DN'
 
             # Background/sky subtract science data.
-            sci_data_sub_bkg = self.compute_bkg_subtracted_data(
+            bkg = self.compute_bkg_subtracted_data(
                 sci_model.data, sci_model.err)
-            if sci_data_sub_bkg is None:
+            if bkg is None:
                 sci_model.meta.cal_step.extract_1d = 'SKIPPED'
                 return sci_model
 
             # Extract 1d spectra.
             spectra, variances = self.extract_1d_spectra(
-                D=sci_data_sub_bkg,
+                D=sci_model.data,
+                S=bkg,
                 V=sci_model.err**2,
                 V_0=read_noise_data**2,
                 Q=gain_data)
 
             for spec in spectra[0:10]:
-                plt.plot(spec)
+                plt.plot(np.arange(spec.shape[0]), spec)
             plt.show()
 
             # TODO: build output data type, copy meta data,
@@ -130,9 +132,9 @@ class Extract1dStep(Step):
                             ref_model))
 
     def compute_bkg_subtracted_data(self, sci_data, sci_err, draw=False):
-        """ Compute background/sky subtracted science data. """
+        """ Compute/estimate background/sky data. """
         # Cutout data in specified background region.
-        sci_data_sub_bkg = np.copy(sci_data)
+        bkg = np.zeros(sci_data.shape)
         all_cols = np.arange(0, sci_data.shape[2])
         bkg_cols = np.r_[self.bkg_region[0]:self.bkg_region[1],
                          self.bkg_region[2]:self.bkg_region[3]]
@@ -145,17 +147,17 @@ class Extract1dStep(Step):
         for idx_int, integration in enumerate(bkg_data):
 
             if self.bkg_algo == 'constant':
-                bkg = np.mean(stats.sigmaclip(
+                bkg_int = np.mean(stats.sigmaclip(
                     integration, low=5.0, high=5.0)[0])
-                sci_data_sub_bkg[idx_int, :, :] -= bkg
+                bkg[idx_int, :, :] = bkg_int
 
             elif self.bkg_algo == 'polynomial':
-                bkg = []
+                bkg_int = []
                 for idx_row, int_row in enumerate(integration):
                     p_coeff = np.polyfit(
                         bkg_cols, int_row, self.bkg_poly_order,
                         w=1/sci_err[idx_int, idx_row, bkg_cols])
-                    bkg.append(np.polyval(p_coeff, all_cols))
+                    bkg_int.append(np.polyval(p_coeff, all_cols))
 
                     if draw:
                         self._draw_bkg_poly_fits(
@@ -163,10 +165,10 @@ class Extract1dStep(Step):
                             np.polyval(p_coeff, all_cols),
                             idx_row)
 
-                bkg = np.array(bkg)
+                bkg_int = np.array(bkg_int)
                 if self.bkg_smoothing_length is not None:
-                    bkg = self._median_smooth_per_column(bkg)
-                sci_data_sub_bkg[idx_int, :, :] -= bkg
+                    bkg_int = self._median_smooth_per_column(bkg_int)
+                bkg[idx_int, :, :] = bkg_int
 
             else:
                 self.log.error('Background algorithm not supported. See '
@@ -174,7 +176,7 @@ class Extract1dStep(Step):
                                'l", default="polynomial")')
                 return None
 
-        return sci_data_sub_bkg
+        return bkg
 
     def _median_smooth_per_column(self, bkg):
         """ Median smooth data per column. """
@@ -192,35 +194,35 @@ class Extract1dStep(Step):
 
         return sm_bkg
 
-    def _draw_bkg_poly_fits(self, x_data, y_data, x_model, y_model, idx_row):
+    def _draw_bkg_poly_fits(self, x_data, y_data, x_model, y_model, idx_slice):
         """ Draw the polynomial fits to the background. """
         fig = plt.figure(figsize=(8, 7))
         ax1 = fig.add_subplot(111)
         ax1.scatter(x_data, y_data, s=10, c='#000000',
-                    label='Bkg pixels, row={}.'.format(idx_row))
+                    label='Bkg pixels, slice={}.'.format(idx_slice))
         ax1.plot(x_model, y_model, c='#bc5090',
                  label='Poly fit, order={}.'.format(self.bkg_poly_order))
         ax1.set_xlabel('Pixel row')
         ax1.set_ylabel('DN/s')
+        plt.legend()
         plt.tight_layout()
         plt.show()
 
-    def extract_1d_spectra(self, D, V, V_0, Q):
+    def extract_1d_spectra(self, D, S, V, V_0, Q):
         """ Extract 1d spectra from bkg subtracted science data. """
         self.log.info('Extracting 1d spectra for {} integrations using the '
                       '`{}` algorithm.'.format(D.shape[0], self.extract_algo))
         if self.extract_algo == 'box':
-            return self._box_extract(D, V)
+            return self._box_extraction(D, S, V)
 
         elif self.extract_algo == 'optimal':
-            f, var_f = self._box_extract(D, V)
-            return f, var_f
+            return self._optimal_extraction(D, S, V, V_0, Q)
 
         elif self.extract_algo == 'go':
             # NB. experimental Global Optimal extraction
             # Potentially we want to cut a border away from the edge too.
             # Then on shift-reg-grid we cut to the data strip we care about.
-            return self._box_extract(D, V)
+            raise NotImplementedError('Experimental algo dev WIP.')
 
         else:
             self.log.error('Extract 1d algorithm not supported. See '
@@ -228,24 +230,78 @@ class Extract1dStep(Step):
                            '"go", default="box").')
             return None, None
 
-    def _box_extract(self, D, V):
+    def _box_extraction(self, D, S, V):
         """ Extract with fixed-width top-hat aperture. """
+        # Subtract background/sky.
+        D_S = D - S
+
         # Iterate integrations.
         all_cols = np.arange(0, D.shape[2])
-        psf_centres = []
-        for idx_int, integration in enumerate(D):
+        fs = []
+        var_fs = []
+        for integration, variance in zip(D_S, V):
 
             # Find spectral trace location in x (column position). Assumes
             # not rotation, ie. one x position for entire trace. Stack rows
             # for master psf of integration and fit Gaussian for the centre.
             psf_int = np.sum(integration, axis=0)
-            psf_centres.append(self._get_fitted_gaussian_centre(
-                all_cols, psf_int, sigma_guess=3., fit_region_width=11))
+            psf_centre = self._get_fitted_gaussian_centre(
+                all_cols, psf_int, sigma_guess=3., fit_region_width=11)
 
-        # Extract standard spectra.
-        f, var_f = self._extract_standard_spectra(D, V, np.array(psf_centres))
+            # Define extraction region by column idxs.
+            region_start_idx, region_end_idx = \
+                self._get_start_and_end_idxs_of_region(psf_centre)
 
-        return f, var_f
+            # Extract standard spectrum.
+            f, var_f = self._extract_standard_spectra(
+                integration, variance, region_start_idx, region_end_idx)
+            fs.append(f)
+            var_fs.append(var_f)
+
+        return np.array(fs), np.array(var_fs)
+
+    def _optimal_extraction(self, D, S, V, V_0, Q):
+        """ Extract using optimal extraction method of Horne 1986. """
+        # Subtract background/sky.
+        D_S = D - S
+
+        # Iterate integrations.
+        all_cols = np.arange(0, D.shape[2])
+        fs_opt = []
+        var_fs_opt = []
+        for integration, bkg, variance in zip(D_S, S, V):
+
+            # Find spectral trace location in x (column position). Assumes
+            # not rotation, ie. one x position for entire trace. Stack rows
+            # for master psf of integration and fit Gaussian for the centre.
+            psf_int = np.sum(integration, axis=0)
+            psf_centre = self._get_fitted_gaussian_centre(
+                all_cols, psf_int, sigma_guess=3., fit_region_width=11)
+
+            # Define extraction region by column idxs.
+            region_start_idx, region_end_idx = \
+                self._get_start_and_end_idxs_of_region(psf_centre)
+
+            # Extract standard spectrum.
+            f, var_f = self._extract_standard_spectra(
+                integration, variance, region_start_idx, region_end_idx)
+
+            # Construct spatial profile.
+            P = self._construct_spatial_profile(
+                integration, variance, region_start_idx, region_end_idx)
+            P /= np.sum(P, axis=1)[:, np.newaxis]
+
+            # Revise variance estimate.
+            var_revised = self._revise_variance_estimates(
+                f, bkg, P, V_0, Q, region_start_idx, region_end_idx)
+
+            # Extract optimal spectrum.
+            f_opt, var_f_opt = self._extract_optimal_spectrum(
+                integration, P, var_revised, region_start_idx, region_end_idx)
+            fs_opt.append(f_opt)
+            var_fs_opt.append(var_f_opt)
+
+        return np.array(fs_opt), np.array(var_fs_opt)
 
     def _get_fitted_gaussian_centre(self, xs, ys, sigma_guess=3.,
                                     fit_region_width=None, draw=False):
@@ -294,50 +350,98 @@ class Extract1dStep(Step):
         y = a * np.exp(-(x_vals - mu)**2 / (2. * sigma**2))
         return y
 
-    def _extract_standard_spectra(self, D, V, psf_centres):
-        """ Extract standard spectrum f: sum counts within aperture. """
-        # Define extraction region by column idxs.
-        extract_region_radius = int((self.extract_region_width - 1) / 2)
-        if isinstance(psf_centres, float):
+    def _get_start_and_end_idxs_of_region(self, psf_centre):
+        """ Get start and end idxs of region. """
+        region_radius = int((self.extract_region_width - 1) / 2)
+        region_start = int(round(psf_centre - region_radius))
+        region_end = int(round(psf_centre + region_radius + 1))
+        return region_start, region_end
 
-            # Constant psf across integrations.
-            extract_region_start = int(round(
-                psf_centres - extract_region_radius))
-            extract_region_end = int(round(
-                psf_centres + extract_region_radius + 1))
-
-            # f as per Horne 1986 table 1.
-            f = np.sum(D[:, :, extract_region_start:extract_region_end], axis=2)
-
-            # var_f as per Horne 1986 table 1.
-            var_f = np.sum(V[:, :, extract_region_start:extract_region_end], axis=2)
-
+    def _extract_standard_spectra(self, D_S, V, region_start_idx,
+                                  region_end_idx):
+        """ Extract standard spectrum f and var_f: sum counts in aperture. """
+        if D_S.ndim == 2:
+            # f and var_f as per Horne 1986 table 1.
+            f = np.sum(D_S[:, region_start_idx:region_end_idx], axis=1)
+            var_f = np.sum(V[:, region_start_idx:region_end_idx], axis=1)
             return f, var_f
 
-        elif isinstance(psf_centres, np.ndarray):
-
-            # Variable psf across integrations.
-            extract_region_starts = np.rint(
-                psf_centres - extract_region_radius).astype(int)
-            extract_region_ends = np.rint(
-                psf_centres + extract_region_radius + 1).astype(int)
-
-            f = []
-            var_f = []
-            for idx_int in range(D.shape[0]):
-
-                # f as per Horne 1986 table 1.
-                f.append(np.sum(D[idx_int, :,
-                                extract_region_starts[idx_int]:
-                                extract_region_ends[idx_int]], axis=1))
-
-                # var_f as per Horne 1986 table 1.
-                var_f.append(np.sum(V[idx_int, :,
-                                    extract_region_starts[idx_int]:
-                                    extract_region_ends[idx_int]], axis=1))
-
-            return np.array(f), np.array(var_f)
+        elif D_S.ndim == 3:
+            # f and var_f as per Horne 1986 table 1.
+            f = np.sum(D_S[:, :, region_start_idx:region_end_idx],
+                       axis=2)
+            var_f = np.sum(V[:, :, region_start_idx:region_end_idx],
+                           axis=2)
+            return f, var_f
 
         else:
             self.log.error('Psf centres input type not recognised.')
             return None, None
+
+    def _construct_spatial_profile(self, D_S, V, region_start_idx,
+                                   region_end_idx, draw=False):
+        """ Construct spatial profile p of 2d spectra. """
+        # P as per Horne 1986 table 1.
+        P = []
+
+        # Iterate columns.
+        row_pixel_idxs = np.arange(D_S.shape[0])
+        for col_idx in np.arange(region_start_idx, region_end_idx):
+
+            D_S_col = np.copy(D_S[:, col_idx])
+            D_S_col_mask = np.ones(D_S_col.shape[0])
+            V_col = np.copy(V[:, col_idx])
+            while True:
+                # Replace flagged pixels with nearby median.
+                frr = 10
+                for flag_idx in np.where(D_S_col_mask == 0)[0]:
+                    D_S_col[flag_idx] = np.median(
+                        D_S_col[max(0, flag_idx - frr):
+                              min(D_S_col.shape[0] - 1, flag_idx + frr + 1)])
+
+                # Fit polynomial to column.
+                p_coeff = np.polyfit(row_pixel_idxs, D_S_col,
+                                     self.extract_poly_order, w=1/V_col**0.5)
+                p_col = np.polyval(p_coeff, row_pixel_idxs)
+
+                # Check residuals to polynomial fit.
+                res_col = D_S_col - p_col
+                dev_col = np.abs(res_col) / np.std(res_col)
+                max_deviation_idx = np.argmax(dev_col)
+                if dev_col[max_deviation_idx] > 7.:
+                    # Outlier: mask and repeat poly fitting.
+                    D_S_col_mask[max_deviation_idx] = 0
+                    continue
+                else:
+                    P.append(p_col)
+                    if draw:
+                        self._draw_bkg_poly_fits(
+                            row_pixel_idxs, D_S_col,
+                            row_pixel_idxs, p_col, col_idx)
+                    break
+
+        # Rotate.
+        P = np.array(P).T
+
+        # Enforce positivity.
+        P[P < 0] = 0.
+
+        return P
+
+    def _revise_variance_estimates(self, f, S, P, V_0, Q, region_start_idx,
+                                   region_end_idx):
+        """ Revise variance estimates V revised. """
+        # V revised as per Horne 1986 table 1.
+        V_rev = V_0[:, region_start_idx:region_end_idx] + np.abs(
+            f[:, np.newaxis] * P + S[:, region_start_idx:region_end_idx]) \
+                / Q[:, region_start_idx:region_end_idx]
+        return V_rev
+
+    def _extract_optimal_spectrum(self, D_S, P, V_rev, region_start_idx,
+                                  region_end_idx):
+        """ Extract optimal spectrum f optimal. """
+        # f optimal as per Horne 1986 table 1.
+        f_opt = np.sum(P * D_S[:, region_start_idx:region_end_idx] / V_rev,
+                       axis=1) / np.sum(P**2 / V_rev, axis=1)
+        var_f_opt = np.sum(P, axis=1) / np.sum(P**2 / V_rev, axis=1)
+        return f_opt, var_f_opt
