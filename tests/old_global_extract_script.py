@@ -352,10 +352,6 @@ plt.scatter(time_bin_sizes, sigmas_box, label='Box')
 plt.scatter(time_bin_sizes, sigmas_opt, label='Optimal')
 plt.scatter(time_bin_sizes, sigmas_g_opt, label='New')
 
-# plt.plot(time_bin_sizes, (1 / time_bin_sizes**0.5) + sigmas_box[0] - 1, ls='--')
-# plt.plot(time_bin_sizes, (1 / time_bin_sizes**0.5) + sigmas_opt[0] - 1, ls='--')
-# plt.plot(time_bin_sizes, (1 / time_bin_sizes**0.5) + sigmas_g_opt[0] - 1, ls='--')
-
 plt.plot(time_bin_sizes, sigmas_box[0] / time_bin_sizes**0.5, ls='--')
 plt.plot(time_bin_sizes, sigmas_opt[0] / time_bin_sizes**0.5, ls='--')
 plt.plot(time_bin_sizes, sigmas_g_opt[0] / time_bin_sizes**0.5, ls='--')

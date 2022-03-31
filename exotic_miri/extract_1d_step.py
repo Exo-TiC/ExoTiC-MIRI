@@ -204,12 +204,17 @@ class Extract1dStep(Step):
         # Potentially we want to cut a border away from the edge too.
         # Then on shift-reg-grid we cut to the data strip we care about.
 
-        # Option 1.
-        # Box.
+        if self.extract_algo == 'box':
+            self.box_extract()
 
         # Option 2.
         # Optimal extraction per frame.
 
         # Option 3.
         # Global optimal extraction.
+
         return []
+
+    def box_extract(self, D, ):
+        """ Extract with fixed-width top-hat aperture. """
+

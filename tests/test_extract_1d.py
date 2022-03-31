@@ -78,8 +78,8 @@ class TestExtract1d(unittest.TestCase):
         for i in range(n_ints):
 
             # Build psf.
-            int_sci = np.copy(sci)
-            int_err = np.copy(err)
+            int_sci = np.zeros(sci.shape)
+            int_err = np.zeros(err.shape)
             for row_idx in row_pixel_vals:
                 int_sci[row_idx] = self._gaussian(
                     col_pixel_vals, psf_locs[i], psf_sigmas[row_idx])
@@ -93,11 +93,13 @@ class TestExtract1d(unittest.TestCase):
             int_sci *= spec_trace_signal_amp / np.max(int_sci)
             int_sci += bkg
             int_sci += rn
-            int_sci = np.random.poisson(int_sci) / integration_time
-            int_err = (rn**2 + np.abs(int_sci) / gain)**0.5 / integration_time
+            int_sci_dn = np.random.poisson(int_sci) / gain
+            int_err_dn = (rn**2 + np.abs(int_sci_dn) / gain)**0.5
+            int_sci_dn_per_s = int_sci_dn / integration_time
+            int_err_dn_per_s = int_err_dn / integration_time
 
-            integrations.append(int_sci)
-            errors.append(int_err)
+            integrations.append(int_sci_dn_per_s)
+            errors.append(int_err_dn_per_s)
 
             if draw:
                 fig = plt.figure(figsize=(8, 7))
