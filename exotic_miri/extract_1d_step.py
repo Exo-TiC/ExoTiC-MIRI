@@ -390,7 +390,7 @@ class Extract1dStep(Step):
             template_spec = np.median(fs_opt, axis=0)
             positions_spec = self._compute_cross_correlation_positions(
                 all_rows, template_spec, fs_opt,
-                sigma_guess=3., fit_region_width=33)
+                sigma_guess=9., fit_region_width=33)
             shifts_spec_corr = positions_spec - positions_spec[anchor_int]
             y_shifts += shifts_spec_corr
 

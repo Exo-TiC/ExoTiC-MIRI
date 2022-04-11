@@ -19,7 +19,7 @@ class TestExtract1d(unittest.TestCase):
         super(TestExtract1d, self).__init__(*args, **kwargs)
 
         # Synthesise test data.
-        self.spec_trace_signal_amp = 25000.
+        self.spec_trace_signal_amp = 1.5e6
         inj, sci, err = self._make_miri_ish_data_chunk(draw=False)
         self.ground_truth_spectra = inj
 
@@ -92,16 +92,16 @@ class TestExtract1d(unittest.TestCase):
 
         # Shifting spectral trace.
         psf_locs = np.linspace(35.5, 36.5, n_ints) \
-                   + np.random.normal(loc=0., scale=0.1, size=n_ints)
-        psf_sigmas = np.linspace(1.25, 1.35, n_rows)
+                   + np.random.normal(loc=0., scale=0.00001, size=n_ints)
+        psf_sigmas = np.linspace(1.31, 1.35, n_rows)
         spec_trace_sigma = 75.
         spec_trace_locs = np.linspace(210.5, 211.5, n_ints) \
-                          + np.random.normal(loc=0., scale=0.1, size=n_ints)
+                          + np.random.normal(loc=0., scale=0.00001, size=n_ints)
 
         # Data arrays: bkg, science, err, read noise, and gain.
         integration_time = 10.3376
         bkg = 1000. * np.ones((n_rows, n_cols)) \
-              * np.linspace(0.98, 1.02, n_rows)[:, np.newaxis]
+              * np.linspace(0.98, 0.98, n_rows)[:, np.newaxis]
         sci = np.zeros((n_rows, n_cols))
         err = np.zeros((n_rows, n_cols))
         rn = np.random.normal(loc=.0, scale=2., size=(n_rows, n_cols))
@@ -125,7 +125,7 @@ class TestExtract1d(unittest.TestCase):
             int_sci *= spec_trace[:, np.newaxis]
 
             # Add signal.
-            int_sci *= self.spec_trace_signal_amp / np.max(int_sci)
+            int_sci *= self.spec_trace_signal_amp
             injections.append(np.sum(int_sci / gain, axis=1))
             int_sci += bkg
             int_sci += rn
@@ -163,25 +163,31 @@ class TestExtract1d(unittest.TestCase):
         spectral_model = Extract1dStep().call(
             self.test_cube_model,
             bkg_region=[8, 22, 52, 70],
-            bkg_algo='polynomial',
+            bkg_algo='constant',
             bkg_poly_order=0,
             bkg_smoothing_length=50,
             extract_region_width=19,
             extract_algo='anchor',
             extract_poly_order=8)
 
-        # # Admin checks.
-        # for ii in range(100):
-        #     plt.plot(spectral_model.spectra[ii]['wavelengths'],
-        #              spectral_model.spectra[ii]['flux'])
-        #     plt.show()
-        #     plt.plot(spectral_model.spectra[ii]['pixels'],
-        #              spectral_model.spectra[ii]['flux'])
-        #     plt.show()
-        #     plt.errorbar(spectral_model.spectra[ii]['pixels'],
-        #                  spectral_model.spectra[ii]['flux'],
-        #                  yerr=spectral_model.spectra[ii]['flux_error'])
-        #     plt.show()
+        # White light plots.
+        lc_injected = []
+        lc_observed = []
+        for ii in range(len(spectral_model.spectra)):
+            lc_injected.append(self.ground_truth_spectra[ii].sum())
+            lc_observed.append(spectral_model.spectra[ii]['flux'].sum())
+        lc_injected = np.array(lc_injected)
+        lc_injected /= np.median(lc_injected)
+        lc_observed = np.array(lc_observed)
+        lc_observed /= np.median(lc_observed)
+
+        print(np.std(lc_observed - lc_injected))
+        plt.scatter(np.arange(100), lc_observed)
+        plt.scatter(np.arange(100), lc_injected)
+        plt.show()
+
+        # Todo: deal with flagged points. bad readnoise points.
+        # Todo: if enforce +ve in entire axis then divide by zero.
 
         # Todo: add new method option.
         # Todo: add methods for different options.
@@ -194,6 +200,7 @@ class TestExtract1d(unittest.TestCase):
             residuals = recovered_spec - self.ground_truth_spectra[idx_int]
             deviations = np.abs(residuals) / recovered_sigma
             self.assertLess(np.max(deviations), 10.)
+            print(np.max(deviations))
 
 
 if __name__ == '__main__':
