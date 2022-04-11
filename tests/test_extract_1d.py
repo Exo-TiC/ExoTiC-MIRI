@@ -10,6 +10,7 @@ os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
 from jwst import datamodels
 
 from exotic_miri import Extract1dStep
+from jwst import gain_scale
 
 
 class TestExtract1d(unittest.TestCase):
@@ -200,7 +201,6 @@ class TestExtract1d(unittest.TestCase):
             residuals = recovered_spec - self.ground_truth_spectra[idx_int]
             deviations = np.abs(residuals) / recovered_sigma
             self.assertLess(np.max(deviations), 10.)
-            print(np.max(deviations))
 
 
 if __name__ == '__main__':

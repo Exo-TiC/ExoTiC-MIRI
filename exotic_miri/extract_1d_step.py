@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -692,7 +693,10 @@ class Extract1dStep(Step):
 
         # Compute wavelengths as mean within each row.
         pixels = np.arange(0, input_model.data.shape[1])
-        wavelengths = np.nanmean(wavelength_map, axis=1)
+        with warnings.catch_warnings():
+            # All nan slice gives warning. Prevent the warning.
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            wavelengths = np.nanmean(wavelength_map, axis=1)
 
         return pixels, wavelengths
 
