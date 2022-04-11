@@ -163,14 +163,14 @@ class TestExtract1d(unittest.TestCase):
         spectral_model = Extract1dStep().call(
             self.test_cube_model,
             bkg_region=[8, 22, 52, 70],
-            bkg_algo='constant',
+            bkg_algo='polynomial',
             bkg_poly_order=0,
             bkg_smoothing_length=50,
             extract_region_width=19,
-            extract_algo='box',
+            extract_algo='anchor',
             extract_poly_order=8)
 
-        # Admin checks.
+        # # Admin checks.
         # for ii in range(100):
         #     plt.plot(spectral_model.spectra[ii]['wavelengths'],
         #              spectral_model.spectra[ii]['flux'])
@@ -179,9 +179,13 @@ class TestExtract1d(unittest.TestCase):
         #              spectral_model.spectra[ii]['flux'])
         #     plt.show()
         #     plt.errorbar(spectral_model.spectra[ii]['pixels'],
-        #              spectral_model.spectra[ii]['flux'],
+        #                  spectral_model.spectra[ii]['flux'],
         #                  yerr=spectral_model.spectra[ii]['flux_error'])
         #     plt.show()
+
+        # Todo: add new method option.
+        # Todo: add methods for different options.
+        # Todo: add asseetions.
 
         # Check if recover the injected spectra.
         for idx_int in range(len(spectral_model.spectra)):

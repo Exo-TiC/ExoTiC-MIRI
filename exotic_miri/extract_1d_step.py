@@ -23,7 +23,7 @@ class Extract1dStep(Step):
     bkg_region = int_list(default=None)  # background region, start, stop, start, stop
     bkg_poly_order = integer(default=1)  # order of polynomial for background fitting
     bkg_smoothing_length = integer(default=None)  # median smooth values over pixel length
-    extract_algo = option("box", "optimal", "go", default="box")  # extraction algorithm
+    extract_algo = option("box", "optimal", "anchor", default="box")  # extraction algorithm
     extract_region_width = integer(default=20)  # full width of extraction region
     extract_poly_order = integer(default=1)  # order of polynomial for optimal extraction
     """
@@ -100,7 +100,7 @@ class Extract1dStep(Step):
                 sci_model.meta.cal_step.extract_1d = 'SKIPPED'
                 return sci_model
 
-            # Extract 1d spectra.
+            # Extract 1d spectra, variances, and spectral trace shifts.
             spectra, variances = self.extract_1d_spectra(
                 D=sci_model.data,
                 S=bkg,
@@ -220,11 +220,9 @@ class Extract1dStep(Step):
         elif self.extract_algo == 'optimal':
             return self._optimal_extraction(D, S, V, V_0, Q)
 
-        elif self.extract_algo == 'go':
-            # NB. experimental Global Optimal extraction
-            # Potentially we want to cut a border away from the edge too.
-            # Then on shift-reg-grid we cut to the data strip we care about.
-            raise NotImplementedError('Experimental algo dev WIP.')
+        elif self.extract_algo == 'anchor':
+            # NB. experimental anchor extraction.
+            return self._anchor_extraction(D, S, V, V_0, Q)
 
         else:
             self.log.error('Extract 1d algorithm not supported. See '
@@ -244,7 +242,7 @@ class Extract1dStep(Step):
         for integration, variance in zip(D_S, V):
 
             # Find spectral trace location in x (column position). Assumes
-            # not rotation, ie. one x position for entire trace. Stack rows
+            # no rotation, ie. one x position for entire trace. Stack rows
             # for master psf of integration and fit Gaussian for the centre.
             psf_int = np.sum(integration, axis=0)
             psf_centre = self._get_fitted_gaussian_centre(
@@ -274,7 +272,7 @@ class Extract1dStep(Step):
         for integration, bkg, variance in zip(D_S, S, V):
 
             # Find spectral trace location in x (column position). Assumes
-            # not rotation, ie. one x position for entire trace. Stack rows
+            # no rotation, ie. one x position for entire trace. Stack rows
             # for master psf of integration and fit Gaussian for the centre.
             psf_int = np.sum(integration, axis=0)
             psf_centre = self._get_fitted_gaussian_centre(
@@ -305,8 +303,119 @@ class Extract1dStep(Step):
 
         return np.array(fs_opt), np.array(var_fs_opt)
 
+    def _anchor_extraction(self, D, S, V, V_0, Q, anchor_int=0):
+        """ Extract using anchor extraction method. NB. experimental. """
+        # Todo: deal with flagged points.
+        V_0[V_0 > 100] = 20
+
+        # Subtract background/sky.
+        D_S = D - S
+
+        # Setup data structures.
+        all_cols = np.arange(0, D.shape[2])
+        all_rows = np.arange(0, D.shape[1])
+        x_shifts = np.zeros(D.shape[0])
+        y_shifts = np.zeros(D.shape[0])
+        original_grids = {'D_S': D_S, 'S': S, 'V': V,
+                          'V_0': np.tile(V_0, (D.shape[0], 1, 1)),
+                          'Q': np.tile(Q, (D.shape[0], 1, 1))}
+
+        # Define anchor position. Given by anchor_int' trace.
+        # The spectral extraction region and trace location. All
+        # integrations' traces will be shift-re-gridded onto here.
+        psf_int_anchor = np.sum(D_S[anchor_int], axis=0)
+        psf_centre_anchor = self._get_fitted_gaussian_centre(
+            all_cols, psf_int_anchor, sigma_guess=3., fit_region_width=11)
+        region_start_idx, region_end_idx = \
+            self._get_start_and_end_idxs_of_region(psf_centre_anchor)
+        region_pix_width = region_end_idx - region_start_idx
+        re_grids_xr = {'D_S': np.empty(D_S.shape[0:2] + (region_pix_width,)),
+                       'S': np.empty(S.shape[0:2] + (region_pix_width,)),
+                       'V': np.empty(V.shape[0:2] + (region_pix_width,)),
+                       'V_0': np.empty(V.shape[0:2] + (region_pix_width,)),
+                       'Q': np.empty(V.shape[0:2] + (region_pix_width,))}
+
+        # Iterate until convergence. Shift-re-gridding towards a global
+        # spatial profile, anchored in place.
+        while True:
+
+            # Re-grid based on latest shift updates. Initial re-grid
+            # leaves the arrays identical to the original.
+            for idx in range(D.shape[0]):
+
+                # Update row and col pixel values with shift for this
+                # integration. Only for anchored extraction region.
+                shifted_rows_xr = all_rows + y_shifts[idx]
+                shifted_cols_xr = all_cols[region_start_idx: region_end_idx] \
+                                  + x_shifts[idx]
+
+                # Interpolate each data array onto anchored extraction region.
+                for key, og_grid in original_grids.items():
+                    interp_grid = interpolate.RectBivariateSpline(
+                        all_rows, all_cols, og_grid[idx, :, :], kx=3, ky=3)
+                    re_grids_xr[key][idx, :, :] = interp_grid(
+                        shifted_rows_xr, shifted_cols_xr)
+
+            # Stack all integrations.
+            stacked_D_S = np.sum(re_grids_xr['D_S'], axis=0)
+            stacked_V = np.sum(re_grids_xr['V'], axis=0)
+
+            # Construct global spatial profiles for each direction.
+            P_global = self._construct_spatial_profile(
+                stacked_D_S, stacked_V, 0, region_pix_width)
+            P_global_spec = P_global / np.sum(P_global, axis=1)[:, np.newaxis]
+            P_global_psf = P_global / np.sum(P_global, axis=0)[np.newaxis, :]
+            # Todo: if enforce +ve in entire axis then divide by zero.
+
+            # Optimal extract both spectra (fs, dispersion direction) and
+            # psfs (gs, cross-dispersion direction) using global spatial
+            # profile in anchored region.
+            fs, var_fs = self._extract_standard_spectra(
+                re_grids_xr['D_S'], re_grids_xr['V'])
+            var_fs_revised = self._revise_variance_estimates(
+                fs, re_grids_xr['S'], P_global_spec, re_grids_xr['V_0'],
+                re_grids_xr['Q'], mode='spec')
+            fs_opt, var_fs_opt = self._extract_optimal_spectrum(
+                re_grids_xr['D_S'], P_global_spec, var_fs_revised, mode='spec')
+
+            gs, var_gs = self._extract_standard_psf(
+                re_grids_xr['D_S'], re_grids_xr['V'])
+            var_gs_revised = self._revise_variance_estimates(
+                gs, re_grids_xr['S'], P_global_psf, re_grids_xr['V_0'],
+                re_grids_xr['Q'], mode='psf')
+            gs_opt, var_gs_opt = self._extract_optimal_spectrum(
+                re_grids_xr['D_S'], P_global_psf, var_gs_revised, mode='psf')
+
+            # Compute spectral trace shifts.
+            template_spec = np.median(fs_opt, axis=0)
+            positions_spec = self._compute_cross_correlation_positions(
+                all_rows, template_spec, fs_opt,
+                sigma_guess=3., fit_region_width=33)
+            shifts_spec_corr = positions_spec - positions_spec[anchor_int]
+            y_shifts += shifts_spec_corr
+
+            template_psf = np.median(gs_opt, axis=0)
+            positions_psf = self._compute_cross_correlation_positions(
+                all_cols[region_start_idx: region_end_idx],
+                template_psf, gs_opt,
+                sigma_guess=3., fit_region_width=11)
+            shifts_psf_corr = positions_psf - positions_psf[anchor_int]
+            x_shifts += shifts_psf_corr
+
+            # Test for convergence.
+            self.log.info('Anchor shift reporting: x shifts median={}, max={}'
+                          ' and y shifts median={} max={}.'.format(
+                           round(np.median(np.abs(shifts_psf_corr)), 6),
+                           round(np.max(np.abs(shifts_psf_corr)), 6),
+                           round(np.median(np.abs(shifts_spec_corr)), 6),
+                           round(np.max(np.abs(shifts_spec_corr)), 6)))
+            if np.all(np.abs(shifts_spec_corr) < 1e-3) \
+                    and np.all(np.abs(shifts_psf_corr) < 1e-3):
+                self.log.info('Anchor convergence reached.')
+                return fs_opt, var_fs_opt
+
     def _get_fitted_gaussian_centre(self, xs, ys, sigma_guess=3.,
-                                    fit_region_width=None, draw=False):
+                                    fit_region_width=11., draw=False):
         """ Get centre by fitting a Gaussian function. """
         if fit_region_width is not None:
             # Trim region for fitting.
@@ -344,6 +453,8 @@ class Extract1dStep(Step):
         ax1.axvline(popt[1], ls='--')
         ax1.set_xlabel('Pixels')
         ax1.set_ylabel('DN')
+        ax1.set_title('Amp={}, $\mu$={}, and $\sigma$={}.'.format(
+            round(popt[0], 3), round(popt[1], 3), round(popt[2], 3)))
         plt.tight_layout()
         plt.show()
 
@@ -359,8 +470,32 @@ class Extract1dStep(Step):
         region_end = int(round(psf_centre + region_radius + 1))
         return region_start, region_end
 
-    def _extract_standard_spectra(self, D_S, V, region_start_idx,
-                                  region_end_idx):
+    def _compute_cross_correlation_positions(self, pixels, template, dataset,
+                                             sigma_guess=3.,
+                                             fit_region_width=11, draw=False):
+        """ Compute positions from cross-correlation functions. """
+        # Standardise.
+        template_norm = template / np.max(template)
+        dataset_norm = dataset / np.max(dataset, axis=1)[:, np.newaxis]
+
+        shifts = []
+        for spec in dataset_norm:
+
+            # Cross-correlation with template.
+            ccf = np.correlate(spec, template_norm, mode='same')
+
+            # Find shifts from Gaussian fits to the centre of each
+            # cross-correlation function.
+            shifts.append(self._get_fitted_gaussian_centre(
+                pixels, ccf,
+                sigma_guess=sigma_guess,
+                fit_region_width=fit_region_width,
+                draw=draw))
+
+        return np.array(shifts)
+
+    def _extract_standard_spectra(self, D_S, V, region_start_idx=None,
+                                  region_end_idx=None):
         """ f and var_f as per Horne 1986 table 1 (step 4). """
         if D_S.ndim == 2:
             f = np.sum(D_S[:, region_start_idx:region_end_idx], axis=1)
@@ -375,7 +510,28 @@ class Extract1dStep(Step):
             return f, var_f
 
         else:
-            self.log.error('Psf centres input type not recognised.')
+            self.log.error('Extract standard spectra input shape '
+                           'not recognised.')
+            return None, None
+
+    def _extract_standard_psf(self, D_S, V, region_start_idx=None,
+                              region_end_idx=None):
+        """ Similar to standard spectra but cross-dispersion profiles. """
+        if D_S.ndim == 2:
+            g = np.sum(D_S[:, region_start_idx:region_end_idx], axis=0)
+            var_g = np.sum(V[:, region_start_idx:region_end_idx], axis=0)
+            return g, var_g
+
+        elif D_S.ndim == 3:
+            g = np.sum(D_S[:, :, region_start_idx:region_end_idx],
+                       axis=1)
+            var_g = np.sum(V[:, :, region_start_idx:region_end_idx],
+                           axis=1)
+            return g, var_g
+
+        else:
+            self.log.error('Extract standard psf input shape '
+                           'not recognised.')
             return None, None
 
     def _construct_spatial_profile(self, D_S, V, region_start_idx,
@@ -427,24 +583,106 @@ class Extract1dStep(Step):
 
         return P
 
-    def _revise_variance_estimates(self, f, S, P, V_0, Q, region_start_idx,
-                                   region_end_idx):
+    def _revise_variance_estimates(self, f, S, P, V_0, Q, region_start_idx=None,
+                                   region_end_idx=None, mode='spec'):
         """ V revised as per Horne 1986 table 1 (step 6). """
-        V_rev = V_0[:, region_start_idx:region_end_idx] + np.abs(
-            f[:, np.newaxis] * P + S[:, region_start_idx:region_end_idx]) \
-                / Q[:, region_start_idx:region_end_idx]
-        return V_rev
+        if f.ndim == 1:
+            if mode == 'spec':
+                V_rev = V_0[:, region_start_idx:region_end_idx] + np.abs(
+                    f[:, np.newaxis] * P
+                    + S[:, region_start_idx:region_end_idx]) \
+                    / Q[:, region_start_idx:region_end_idx]
+                return V_rev
 
-    def _extract_optimal_spectrum(self, D_S, P, V_rev, region_start_idx,
-                                  region_end_idx):
+            elif mode == 'psf':
+                V_rev = V_0[:, region_start_idx:region_end_idx] + np.abs(
+                    f[np.newaxis, :] * P
+                    + S[:, region_start_idx:region_end_idx]) \
+                    / Q[:, region_start_idx:region_end_idx]
+                return V_rev
+
+            else:
+                self.log.error('Revise variance mode not recognised.')
+                return None
+
+        elif f.ndim == 2:
+            if mode == 'spec':
+                V_rev = V_0[:, :, region_start_idx:region_end_idx] + np.abs(
+                    f[:, :, np.newaxis] * P[np.newaxis, :, :]
+                    + S[:, :, region_start_idx:region_end_idx]) \
+                    / Q[:, :, region_start_idx:region_end_idx]
+                return V_rev
+
+            elif mode == 'psf':
+                V_rev = V_0[:, :, region_start_idx:region_end_idx] + np.abs(
+                    f[:, np.newaxis, :] * P[np.newaxis, :, :]
+                    + S[:, :, region_start_idx:region_end_idx]) \
+                    / Q[:, :, region_start_idx:region_end_idx]
+                return V_rev
+
+            else:
+                self.log.error('Revise variance mode not recognised.')
+                return None
+
+        else:
+            self.log.error('Revise variance estimates, data input '
+                           'shape not recognised.')
+            return None
+
+    def _extract_optimal_spectrum(self, D_S, P, V_rev, region_start_idx=None,
+                                  region_end_idx=None, mode='spec'):
         """ f optimal as per Horne 1986 table 1 (step 8). """
-        f_opt = np.sum(P * D_S[:, region_start_idx:region_end_idx] / V_rev,
-                       axis=1) / np.sum(P**2 / V_rev, axis=1)
-        var_f_opt = np.sum(P, axis=1) / np.sum(P**2 / V_rev, axis=1)
-        return f_opt, var_f_opt
+        if D_S.ndim == 2:
+            if mode == 'spec':
+                f_opt = np.sum(
+                    P * D_S[:, region_start_idx:region_end_idx] / V_rev, axis=1) \
+                    / np.sum(P**2 / V_rev, axis=1)
+                var_f_opt = np.sum(P, axis=1) / np.sum(P**2 / V_rev, axis=1)
+                return f_opt, var_f_opt
+
+            elif mode == 'psf':
+                f_opt = np.sum(
+                    P * D_S[:, region_start_idx:region_end_idx] / V_rev, axis=0) \
+                    / np.sum(P**2 / V_rev, axis=0)
+                var_f_opt = np.sum(P, axis=0) / np.sum(P**2 / V_rev, axis=0)
+                return f_opt, var_f_opt
+
+            else:
+                self.log.error('Extract optimal mode not recognised.')
+                return None, None
+
+        elif D_S.ndim == 3:
+            if mode == 'spec':
+                f_opt = np.sum(
+                    P[np.newaxis, :, :]
+                    * D_S[:, :, region_start_idx:region_end_idx] / V_rev, axis=2) \
+                    / np.sum(P[np.newaxis, :, :]**2 / V_rev, axis=2)
+                var_f_opt = np.sum(P[np.newaxis, :, :], axis=2) \
+                            / np.sum(P[np.newaxis, :, :]**2 / V_rev, axis=2)
+                return f_opt, var_f_opt
+
+            elif mode == 'psf':
+                f_opt = np.sum(
+                    P[np.newaxis, :, :]
+                    * D_S[:, :, region_start_idx:region_end_idx] / V_rev, axis=1) \
+                    / np.sum(P[np.newaxis, :, :]**2 / V_rev, axis=1)
+                var_f_opt = np.sum(P[np.newaxis, :, :], axis=1) \
+                            / np.sum(P[np.newaxis, :, :]**2 / V_rev, axis=1)
+                return f_opt, var_f_opt
+
+            else:
+                self.log.error('Extract optimal mode not recognised.')
+                return None, None
+
+        else:
+            self.log.error('Extract optimal spectrum, data input '
+                           'shape not recognised.')
+            return None, None
 
     def _link_world_coordinate_system(self, input_model):
         """ Link WCS and find pixels to wavelengths. """
+        self.log.info('Mapping pixels to wavelengths for spectra.')
+
         # Build wavelength map.
         row_g, col_g = np.mgrid[0:input_model.data.shape[1],
                                 0:input_model.data.shape[2]]
@@ -464,6 +702,7 @@ class Extract1dStep(Step):
         """ Build a multispec data structure compatible w/ STScI pipeline. """
         self.log.info('Packaging results at datamodels.MultiSpecModel'
                       '.spectra as list of pandas.DataFrames.')
+
         # Instantiate MultiSpecModel.
         output_model = datamodels.MultiSpecModel()
 
