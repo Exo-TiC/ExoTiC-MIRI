@@ -27,7 +27,7 @@ class Extract1dStep(Step):
     extract_algo = option("box", "optimal", "anchor", default="box")  # extraction algorithm
     extract_region_width = integer(default=20)  # full width of extraction region
     extract_poly_order = integer(default=1)  # order of polynomial for optimal extraction
-    max_iter = integer(default=10)  # max iterations for anchor algorithm
+    max_iter = integer(default=10)  # max iterations of anchor algorithm
     """
 
     reference_file_types = ['readnoise', 'gain']
@@ -609,20 +609,6 @@ class Extract1dStep(Step):
 
         # Enforce positivity.
         P[P < 0.] = 0.
-
-        # n_rows = P.shape[0]
-        # n_cols = P.shape[1]
-        # row_pixel_vals = np.arange(0, n_rows)
-        # col_pixel_vals = np.arange(0, n_cols)
-        # fig = plt.figure(figsize=(8, 7))
-        # ax1 = fig.add_subplot(111, projection='3d')
-        # xx, yy = np.meshgrid(col_pixel_vals, row_pixel_vals)
-        # ax1.plot_surface(xx, yy, P, cmap='cividis',
-        #                  lw=0., rstride=1, cstride=1, alpha=0.9)
-        # ax1.set_xlabel('Pixel column')
-        # ax1.set_ylabel('Pixel row')
-        # ax1.set_zlabel('DN/s')
-        # plt.show()
 
         return P
 

@@ -2,6 +2,7 @@ import os
 import pickle
 import unittest
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 os.environ['CRDS_PATH'] = 'crds_cache'
@@ -10,7 +11,6 @@ os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
 from jwst import datamodels
 
 from exotic_miri import Extract1dStep
-from jwst import gain_scale
 
 
 class TestExtract1d(unittest.TestCase):
@@ -159,46 +159,83 @@ class TestExtract1d(unittest.TestCase):
             -(x_vals - mu) ** 2 / (2. * sigma ** 2))
         return y
 
+    def _check_output_data_structure(self, spectral_model):
+        """ Check output data structure. """
+        self.assertEqual(datamodels.MultiSpecModel, type(spectral_model))
+        self.assertEqual(100, len(spectral_model.spectra))
+        for spectrum in spectral_model.spectra:
+            self.assertEqual(pd.DataFrame, type(spectrum))
+            self.assertIn('pixels', spectrum.columns)
+            self.assertIn('wavelengths', spectrum.columns)
+            self.assertIn('flux', spectrum.columns)
+            self.assertIn('flux_error', spectrum.columns)
+
+    def _check_recovered_injected_spectra(self, spectral_model, max_std=10.):
+        """ Check if recover the injected spectra. """
+        for idx_int in range(len(spectral_model.spectra)):
+            recovered_spec = spectral_model.spectra[idx_int]['flux']
+            recovered_sigma = spectral_model.spectra[idx_int]['flux_error']
+            residuals = recovered_spec - self.ground_truth_spectra[idx_int]
+            deviations = np.abs(residuals) / recovered_sigma
+            self.assertLess(np.max(deviations), max_std)
+
     def test_extract_1d_bkg_const_spec_box(self):
         """ Test the extract 1d step: bkg=const, spec=box. """
         spectral_model = Extract1dStep().call(
             self.test_cube_model,
             bkg_region=[8, 22, 52, 70],
+            bkg_algo='constant',
+            extract_region_width=19,
+            extract_algo='box')
+
+        self._check_output_data_structure(spectral_model)
+        self._check_recovered_injected_spectra(spectral_model)
+
+    def test_extract_1d_bkg_poly_spec_box(self):
+        """ Test the extract 1d step: bkg=poly, spec=box. """
+        spectral_model = Extract1dStep().call(
+            self.test_cube_model,
+            bkg_region=[8, 22, 52, 70],
             bkg_algo='polynomial',
-            bkg_poly_order=0,
+            bkg_poly_order=1,
+            bkg_smoothing_length=50,
+            extract_region_width=19,
+            extract_algo='box')
+
+        self._check_output_data_structure(spectral_model)
+        self._check_recovered_injected_spectra(spectral_model)
+
+    def test_extract_1d_bkg_poly_spec_optimal(self):
+        """ Test the extract 1d step: bkg=poly, spec=optimal. """
+        spectral_model = Extract1dStep().call(
+            self.test_cube_model,
+            bkg_region=[8, 22, 52, 70],
+            bkg_algo='polynomial',
+            bkg_poly_order=1,
+            bkg_smoothing_length=50,
+            extract_region_width=19,
+            extract_algo='optimal',
+            extract_poly_order=8,
+            max_iter=10)
+
+        self._check_output_data_structure(spectral_model)
+        self._check_recovered_injected_spectra(spectral_model)
+
+    def test_extract_1d_bkg_poly_spec_anchor(self):
+        """ Test the extract 1d step: bkg=poly, spec=anchor. """
+        spectral_model = Extract1dStep().call(
+            self.test_cube_model,
+            bkg_region=[8, 22, 52, 70],
+            bkg_algo='polynomial',
+            bkg_poly_order=1,
             bkg_smoothing_length=50,
             extract_region_width=19,
             extract_algo='anchor',
             extract_poly_order=8,
             max_iter=10)
 
-        # White light plots.
-        lc_injected = []
-        lc_observed = []
-        for ii in range(len(spectral_model.spectra)):
-            lc_injected.append(self.ground_truth_spectra[ii].sum())
-            lc_observed.append(spectral_model.spectra[ii]['flux'].sum())
-        lc_injected = np.array(lc_injected)
-        lc_injected /= np.median(lc_injected)
-        lc_observed = np.array(lc_observed)
-        lc_observed /= np.median(lc_observed)
-
-        print(np.std(lc_observed - lc_injected))
-        plt.scatter(np.arange(100), lc_observed)
-        plt.scatter(np.arange(100), lc_injected)
-        plt.show()
-
-        # Todo: add new method option.
-        # Todo: add methods for different options.
-        # Todo: add asseetions.
-
-        # Check if recover the injected spectra.
-        for idx_int in range(len(spectral_model.spectra)):
-            recovered_spec = spectral_model.spectra[idx_int]['flux']
-            recovered_sigma = spectral_model.spectra[idx_int]['flux_error']
-            residuals = recovered_spec - self.ground_truth_spectra[idx_int]
-            deviations = np.abs(residuals) / recovered_sigma
-            self.assertLess(np.max(deviations), 10.)
+        self._check_output_data_structure(spectral_model)
+        self._check_recovered_injected_spectra(spectral_model)
 
 
 if __name__ == '__main__':
