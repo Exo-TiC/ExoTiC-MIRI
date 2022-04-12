@@ -27,6 +27,7 @@ class Extract1dStep(Step):
     extract_algo = option("box", "optimal", "anchor", default="box")  # extraction algorithm
     extract_region_width = integer(default=20)  # full width of extraction region
     extract_poly_order = integer(default=1)  # order of polynomial for optimal extraction
+    max_iter = integer(default=10)  # max iterations for anchor algorithm
     """
 
     reference_file_types = ['readnoise', 'gain']
@@ -71,16 +72,20 @@ class Extract1dStep(Step):
             # Get read noise data from reference file.
             read_noise_model_path = self.get_reference_file(
                 input_model, 'readnoise')
-            with datamodels.open(read_noise_model_path) as read_noise_model:
+            with datamodels.ReadnoiseModel(read_noise_model_path) \
+                    as read_noise_model:
                 read_noise_data = self._get_miri_subarray_data(
                     sci_model, read_noise_model)
+                # Todo: care w/ flagged pixels in sci and ref data.
+                read_noise_data[read_noise_data == 1000] = \
+                    np.median(read_noise_data)
                 if read_noise_data is None:
                     sci_model.meta.cal_step.extract_1d = 'SKIPPED'
                     return sci_model
 
             # Get gain data from reference file.
             gain_model_path = self.get_reference_file(input_model, 'gain')
-            with datamodels.open(gain_model_path) as gain_model:
+            with datamodels.GainModel(gain_model_path) as gain_model:
                 gain_data = self._get_miri_subarray_data(
                     sci_model, gain_model)
                 if gain_data is None:
@@ -306,9 +311,6 @@ class Extract1dStep(Step):
 
     def _anchor_extraction(self, D, S, V, V_0, Q, anchor_int=0):
         """ Extract using anchor extraction method. NB. experimental. """
-        # Todo: deal with flagged points.
-        V_0[V_0 > 100] = 20
-
         # Subtract background/sky.
         D_S = D - S
 
@@ -338,6 +340,7 @@ class Extract1dStep(Step):
 
         # Iterate until convergence. Shift-re-gridding towards a global
         # spatial profile, anchored in place.
+        iter = 0
         while True:
 
             # Re-grid based on latest shift updates. Initial re-grid
@@ -354,8 +357,11 @@ class Extract1dStep(Step):
                 for key, og_grid in original_grids.items():
                     interp_grid = interpolate.RectBivariateSpline(
                         all_rows, all_cols, og_grid[idx, :, :], kx=3, ky=3)
-                    re_grids_xr[key][idx, :, :] = interp_grid(
-                        shifted_rows_xr, shifted_cols_xr)
+                    re_gridded = interp_grid(shifted_rows_xr, shifted_cols_xr)
+                    if key in ['V', 'V_0', 'Q']:
+                        # Enforce variance and gain positivity.
+                        re_gridded[re_gridded < 0.] = 0.
+                    re_grids_xr[key][idx, :, :] = re_gridded
 
             # Stack all integrations.
             stacked_D_S = np.sum(re_grids_xr['D_S'], axis=0)
@@ -404,6 +410,7 @@ class Extract1dStep(Step):
             x_shifts += shifts_psf_corr
 
             # Test for convergence.
+            iter += 1
             self.log.info('Anchor shift reporting: x shifts median={}, max={}'
                           ' and y shifts median={} max={}.'.format(
                            round(np.median(np.abs(shifts_psf_corr)), 6),
@@ -412,7 +419,12 @@ class Extract1dStep(Step):
                            round(np.max(np.abs(shifts_spec_corr)), 6)))
             if np.all(np.abs(shifts_spec_corr) < 1e-3) \
                     and np.all(np.abs(shifts_psf_corr) < 1e-3):
-                self.log.info('Anchor convergence reached.')
+                self.log.info('Anchor convergence reached in {} iterations.'
+                              .format(iter))
+                return fs_opt, var_fs_opt
+            if iter >= self.max_iter:
+                self.log.info('Anchor max {} iterations reached.'
+                              .format(iter))
                 return fs_opt, var_fs_opt
 
     def _get_fitted_gaussian_centre(self, xs, ys, sigma_guess=3.,
@@ -556,8 +568,13 @@ class Extract1dStep(Step):
                               min(D_S_col.shape[0] - 1, flag_idx + frr + 1)])
 
                 # Fit polynomial to column.
-                p_coeff = np.polyfit(row_pixel_idxs, D_S_col,
-                                     self.extract_poly_order, w=1/V_col**0.5)
+                try:
+                    p_coeff = np.polyfit(row_pixel_idxs, D_S_col,
+                                         self.extract_poly_order, w=1/V_col**0.5)
+                except np.linalg.LinAlgError as err:
+                    self.log.error('Poly fit error when constructing '
+                                   'spatial profile.')
+                    return None
                 p_col = np.polyval(p_coeff, row_pixel_idxs)
 
                 # Check residuals to polynomial fit.
@@ -580,7 +597,7 @@ class Extract1dStep(Step):
         P = np.array(P).T
 
         # Enforce positivity.
-        P[P < 0] = 0.
+        P[P < 0.] = 0.
 
         return P
 

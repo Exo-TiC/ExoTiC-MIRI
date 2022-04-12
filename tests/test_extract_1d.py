@@ -102,10 +102,10 @@ class TestExtract1d(unittest.TestCase):
         # Data arrays: bkg, science, err, read noise, and gain.
         integration_time = 10.3376
         bkg = 1000. * np.ones((n_rows, n_cols)) \
-              * np.linspace(0.98, 0.98, n_rows)[:, np.newaxis]
+              * np.linspace(0.98, 1.02, n_rows)[:, np.newaxis]
         sci = np.zeros((n_rows, n_cols))
         err = np.zeros((n_rows, n_cols))
-        rn = np.random.normal(loc=.0, scale=2., size=(n_rows, n_cols))
+        rn = np.random.normal(loc=.0, scale=5., size=(n_rows, n_cols))
         gain = 5.5 * np.ones((n_rows, n_cols))
 
         # Generate integrations.
@@ -169,7 +169,8 @@ class TestExtract1d(unittest.TestCase):
             bkg_smoothing_length=50,
             extract_region_width=19,
             extract_algo='anchor',
-            extract_poly_order=8)
+            extract_poly_order=8,
+            max_iter=10)
 
         # White light plots.
         lc_injected = []
@@ -187,7 +188,6 @@ class TestExtract1d(unittest.TestCase):
         plt.scatter(np.arange(100), lc_injected)
         plt.show()
 
-        # Todo: deal with flagged points. bad readnoise points.
         # Todo: if enforce +ve in entire axis then divide by zero.
 
         # Todo: add new method option.
