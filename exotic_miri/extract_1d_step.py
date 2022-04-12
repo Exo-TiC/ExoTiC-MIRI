@@ -296,6 +296,12 @@ class Extract1dStep(Step):
             P = self._construct_spatial_profile(
                 integration, variance, region_start_idx, region_end_idx)
             P /= np.sum(P, axis=1)[:, np.newaxis]
+            if np.isnan(P).any():
+                self.log.error(
+                    'Spatial profile contains entire slice of negative '
+                    'values. Background estimation needs to be improved'
+                    '. Try the bkg_algo=`polynomial` algorithm.')
+                return None, None
 
             # Revise variance estimate.
             var_revised = self._revise_variance_estimates(
@@ -372,7 +378,12 @@ class Extract1dStep(Step):
                 stacked_D_S, stacked_V, 0, region_pix_width)
             P_global_spec = P_global / np.sum(P_global, axis=1)[:, np.newaxis]
             P_global_psf = P_global / np.sum(P_global, axis=0)[np.newaxis, :]
-            # Todo: if enforce +ve in entire axis then divide by zero.
+            if np.isnan(P_global_spec).any() or np.isnan(P_global_psf).any():
+                self.log.error(
+                    'Spatial profile contains entire slice of negative '
+                    'values. Background estimation needs to be improved'
+                    '. Try the bkg_algo=`polynomial` algorithm.')
+                return None, None
 
             # Optimal extract both spectra (fs, dispersion direction) and
             # psfs (gs, cross-dispersion direction) using global spatial
@@ -598,6 +609,20 @@ class Extract1dStep(Step):
 
         # Enforce positivity.
         P[P < 0.] = 0.
+
+        # n_rows = P.shape[0]
+        # n_cols = P.shape[1]
+        # row_pixel_vals = np.arange(0, n_rows)
+        # col_pixel_vals = np.arange(0, n_cols)
+        # fig = plt.figure(figsize=(8, 7))
+        # ax1 = fig.add_subplot(111, projection='3d')
+        # xx, yy = np.meshgrid(col_pixel_vals, row_pixel_vals)
+        # ax1.plot_surface(xx, yy, P, cmap='cividis',
+        #                  lw=0., rstride=1, cstride=1, alpha=0.9)
+        # ax1.set_xlabel('Pixel column')
+        # ax1.set_ylabel('Pixel row')
+        # ax1.set_zlabel('DN/s')
+        # plt.show()
 
         return P
 
