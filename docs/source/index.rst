@@ -22,8 +22,8 @@ and as such the algorithms are designed with precise relative fluxes in mind.
    :caption: Documentation
 
    Installation <views/installation>
-   Quick start <views/quick_start>
-   Custom steps <views/custom_steps>
+   Quick start <views/quick_start.ipynb>
+   Custom step descriptions <views/custom_steps>
    Citation <views/citation>
 
 Attribution

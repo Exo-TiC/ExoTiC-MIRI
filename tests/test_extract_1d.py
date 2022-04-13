@@ -215,8 +215,7 @@ class TestExtract1d(unittest.TestCase):
             bkg_smoothing_length=50,
             extract_region_width=19,
             extract_algo='optimal',
-            extract_poly_order=8,
-            max_iter=10)
+            extract_poly_order=8)
 
         self._check_output_data_structure(spectral_model)
         self._check_recovered_injected_spectra(spectral_model)
