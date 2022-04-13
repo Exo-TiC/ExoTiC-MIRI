@@ -1,8 +1,15 @@
+.. class:: center
+
 ExoTiC-MIRI
 ===========
 
+.. class:: center
+
 **Custom steps for JWST MIRI data reduction. Interoperable with the STScI pipeline. .**
 
-Badge.
+.. image:: https://readthedocs.org/projects/exotic-miri/badge/?version=latest
 
-| Read the documentation at: `exotic_miri.readthedocs.io <http://exotic_miri.readthedocs.io/>`_.
+:target: https://exotic-miri.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
+
+| Read the documentation at: `exotic-miri.readthedocs.io <https://exotic-miri.readthedocs.io/>`_
