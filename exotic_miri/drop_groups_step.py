@@ -81,6 +81,8 @@ class DropGroupsStep(Step):
             thinned_model.meta.exposure.integration_time = \
                 thinned_model.meta.exposure.integration_time * span_decrease_f
             thinned_model.meta.exposure.ngroups = thinned_model.data.shape[1]
+            if thinned_model._shape:
+                thinned_model._shape = thinned_model.data.shape
             thinned_model.meta.cal_step.drop_groups = 'COMPLETE'
 
         return thinned_model

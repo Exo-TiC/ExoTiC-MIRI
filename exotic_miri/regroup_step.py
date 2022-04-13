@@ -81,6 +81,8 @@ class RegroupStep(Step):
                 regrouped_model.meta.exposure.integration_time * d_factor
             regrouped_model.meta.exposure.ngroups = self.n_groups
             regrouped_model.meta.exposure.nints = n_int
+            if regrouped_model._shape:
+                regrouped_model._shape = regrouped_model.data.shape
             regrouped_model.meta.cal_step.regroup = 'COMPLETE'
 
         return regrouped_model
