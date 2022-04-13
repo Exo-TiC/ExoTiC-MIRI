@@ -17,17 +17,19 @@ observations from the Mid-Infrared Instrument using when in low resolution
 spectroscopic mode. This mode is of particular use to exoplanet observations,
 and as such the algorithms are designed with precise relative fluxes in mind.
 
-You can find all the software from the Exoplanet Timeseries Characterisation
-(ExoTiC) ecosystem over on `GitHub <https://github.com/Exo-TiC>`_.
-
 .. toctree::
    :maxdepth: 2
    :caption: Documentation
 
    Installation <views/installation>
    Quick start <views/quick_start>
+   Custom steps <views/custom_steps>
+   Citation <views/citation>
 
 Attribution
 -----------
 
 TBD.
+
+You can find other software from the Exoplanet Timeseries Characterisation
+(ExoTiC) ecosystem over on `GitHub <https://github.com/Exo-TiC>`_.
