@@ -1,22 +1,33 @@
-.. ExoTiC-MIRI documentation master file, created by
-   sphinx-quickstart on Wed Apr 13 15:42:36 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 ExoTiC-MIRI
 ===========
 
-Custom steps for JWST MIRI data reduction. Interoperable with the STScI pipeline.
+Custom steps for JWST MIRI data reduction. Interoperable with the STScI
+pipeline.
+
+The Space Telescope `pipeline <https://github.com/spacetelescope/jwst>`_ for
+the James Webb Space Telescope defines two main stages for the processing of
+raw observational data to 1d spectra. Stage 1 involves basic detector-level
+corrections for individual groups, followed by ramp fitting to make rate
+images. Stage 2 involves mode-specific corrections for individual rate images,
+followed by 1d extraction to make spectra. In this package we make available
+custom steps for both stage 1 and stage 2 data processing.
+
+The custom steps provided are built specifically for reducing time-series
+observations from the Mid-Infrared Instrument using when in low resolution
+spectroscopic mode. This mode is of particular use to exoplanet observations,
+and as such the algorithms are designed with precise relative fluxes in mind.
+
+You can find all the software from the Exoplanet Timeseries Characterisation
+(ExoTiC) ecosystem over on `GitHub <https://github.com/Exo-TiC>`_.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Documentation
 
+   Installation <views/installation>
+   Quick start <views/quick_start>
 
+Attribution
+-----------
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+TBD.
