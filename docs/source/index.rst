@@ -30,6 +30,6 @@ Attribution
 -----------
 
 TBD.
-
+git status
 You can find other software from the Exoplanet Timeseries Characterisation
 (ExoTiC) ecosystem over on `GitHub <https://github.com/Exo-TiC>`_.
