@@ -5,7 +5,7 @@ from jwst.stpipe import Step
 class RegroupStep(Step):
     """ Regroup groups into integrations.
 
-    This steps allows the user to regroup your integrations, comprised
+    This steps enables the user to regroup integrations, comprised
     of n groups, into several smaller integrations, comprised of m
     groups, where n is a multiple of m.
 
@@ -81,6 +81,8 @@ class RegroupStep(Step):
                 regrouped_model.meta.exposure.integration_time * d_factor
             regrouped_model.meta.exposure.ngroups = self.n_groups
             regrouped_model.meta.exposure.nints = n_int
+            if regrouped_model._shape:
+                regrouped_model._shape = regrouped_model.data.shape
             regrouped_model.meta.cal_step.regroup = 'COMPLETE'
 
         return regrouped_model

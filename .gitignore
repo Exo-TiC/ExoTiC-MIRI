@@ -31,5 +31,6 @@ vendor.tags
 tmtagsHistory
 .bundle
 
-# Test data.
-tests/crds_cache
+# Caches.
+crds_cache
+.ipynb_checkpoints

@@ -45,7 +45,7 @@ class Extract1dStep(Step):
         JWST data model
             A MultiSpecModel containing extracted 1d spectra. The
             spectra for each integration are packaged as a list of
-            pandas.DataFrames at MultiSpecModel.spectra.
+            pandas.DataFrames in MultiSpecModel.spectra.
             If the step is skipped the `input_model` is returned.
         """
         with datamodels.open(input) as input_model:

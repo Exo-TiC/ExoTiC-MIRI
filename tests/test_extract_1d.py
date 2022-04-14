@@ -1,14 +1,9 @@
-import os
 import pickle
 import unittest
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
-os.environ['CRDS_PATH'] = 'crds_cache'
-os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
-
 from jwst import datamodels
+import matplotlib.pyplot as plt
 
 from exotic_miri import Extract1dStep
 
@@ -215,8 +210,7 @@ class TestExtract1d(unittest.TestCase):
             bkg_smoothing_length=50,
             extract_region_width=19,
             extract_algo='optimal',
-            extract_poly_order=8,
-            max_iter=10)
+            extract_poly_order=8)
 
         self._check_output_data_structure(spectral_model)
         self._check_recovered_injected_spectra(spectral_model)

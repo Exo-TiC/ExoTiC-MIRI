@@ -1,10 +1,5 @@
-import os
 import unittest
 import numpy as np
-
-os.environ['CRDS_PATH'] = 'crds_cache'
-os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
-
 from jwst import datamodels
 
 from exotic_miri import DropGroupsStep
@@ -31,6 +26,12 @@ class TestDropGroups(unittest.TestCase):
         self.test_ramp_model.meta.exposure.ngroups = 50
         self.test_ramp_model.meta.exposure.nints = 1000
         self.test_ramp_model.meta.exposure.type = 'MIR_LRS-SLITLESS'
+
+    def test_template(self):
+        """ Test template. """
+        # Run github actions CI tests.
+        self.assertEqual(type(self.test_ramp_model),
+                         type(self.test_ramp_model))
 
     def test_drop_groups(self):
         """ Test the drop group step with valid args. """

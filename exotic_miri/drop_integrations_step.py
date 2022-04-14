@@ -6,7 +6,7 @@ from jwst.stpipe import Step
 class DropIntegrationsStep(Step):
     """ Drop integrations within data chunk.
 
-    This steps allows the user to drop integrations from a data chunk,
+    This steps enables the user to drop integrations from a data chunk,
     most likely because these groups are too severely affected by
     systematics to be worth processing. This step may also be useful
     if the user wants to test pipelines on only a small subset of data.
@@ -85,6 +85,8 @@ class DropIntegrationsStep(Step):
             thinned_model.meta.nints = thinned_model.data.shape[0]
             thinned_model.meta.nints_file = thinned_model.data.shape[0]
             thinned_model.meta.exposure.nints = thinned_model.data.shape[0]
+            if thinned_model._shape:
+                thinned_model._shape = thinned_model.data.shape
             thinned_model.meta.cal_step.drop_integrations = 'COMPLETE'
 
         return thinned_model
