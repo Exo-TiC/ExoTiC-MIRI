@@ -3,8 +3,12 @@ import pickle
 import unittest
 import numpy as np
 import pandas as pd
-from jwst import datamodels
 import matplotlib.pyplot as plt
+
+os.environ['CRDS_PATH'] = 'crds_cache'
+os.environ['CRDS_SERVER_URL'] = 'https://jwst-crds.stsci.edu'
+
+from jwst import datamodels
 
 from exotic_miri import Extract1dStep
 

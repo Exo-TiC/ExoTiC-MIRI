@@ -9,12 +9,6 @@ on:
 permissions:
   contents: read
 
-env:
-  CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-  CRDS_PATH: $HOME/crds_cache
-  CRDS_CLIENT_RETRY_COUNT: 3
-  CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
-
 jobs:
   build:
 
@@ -22,20 +16,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.8"
+    - uses: s-weigand/setup-conda@v1
+    - run: conda --version
+    - run: which python
     - name: Install dependencies
       run: |
-        conda init zsh
-        conda activate base
         python -m pip install --upgrade pip
-        pip install numpy
-        pip install pandas
-        pip install scipy
-        pip install jwst
-        pip install matplotlib
+        pip install numpy==1.21.3
+        pip install pandas==1.41.
+        pip install scipy==1.7.1
+        pip install jwst==1.4.3
+        pip install matplotlib==3.4.3
     - name: Test with builtin unittesting
       run: |
         python -m unittest tests/test_drop_groups.py
