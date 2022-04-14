@@ -28,6 +28,12 @@ class TestDropGroups(unittest.TestCase):
         self.test_ramp_model.meta.exposure.nints = 1000
         self.test_ramp_model.meta.exposure.type = 'MIR_LRS-SLITLESS'
 
+    def test_template(self):
+        """ Test template. """
+        # Run github actions CI tests.
+        self.assertEqual(type(self.test_ramp_model),
+                         type(self.test_ramp_model))
+
     def test_drop_groups(self):
         """ Test the drop group step with valid args. """
         drop_groups = [[0, 1, 2, 3, 49], [0], [49], [10, 20, 30]]

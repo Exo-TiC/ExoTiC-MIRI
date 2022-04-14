@@ -7,10 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+  CRDS_SERVER_URL: 'https://jwst-crds.stsci.edu'
   CRDS_PATH: $HOME/crds_cache
-  CRDS_CLIENT_RETRY_COUNT: 3
-  CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
 
 permissions:
   contents: write
@@ -33,4 +31,4 @@ jobs:
         pip install matplotlib==3.4.3
     - name: Test with builtin unittesting
       run: |
-        python -m unittest tests/test_drop_groups.py
+        python -m unittest tests.test_drop_groups.TestDropGroups.test_template
