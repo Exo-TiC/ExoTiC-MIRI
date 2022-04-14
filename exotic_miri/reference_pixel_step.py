@@ -6,8 +6,8 @@ from jwst.stpipe import Step
 class ReferencePixelStep(Step):
     """ Reference pixel correction.
 
-    This steps allows the user to apply corrections to their group-
-    level images, using the reference pixels, for the MIRI LRS
+    This steps enables the user to apply corrections to their group-
+    level images, using the reference pixels available to the MIRI LRS
     subarray. The corrections can be made with a variety of options
     for smoothing the values and/or separating odd and even rows.
 
@@ -15,7 +15,7 @@ class ReferencePixelStep(Step):
 
     spec = """
     smoothing_length = integer(default=None)  # median smooth values over pixel length
-    odd_even_rows = boolean(default=True)  # treat and odd and even rows separately
+    odd_even_rows = boolean(default=True)  # treat odd and even rows separately
     """
 
     def process(self, input):
@@ -29,8 +29,8 @@ class ReferencePixelStep(Step):
         Returns
         -------
         JWST data model
-            A RampModel with updated integration groupings, unless the
-            step is skipped in which case `input_model` is returned.
+            A RampModel with the reference pixel correction applied, unless
+            the step is skipped in which case `input_model` is returned.
         """
         with datamodels.open(input) as input_model:
 

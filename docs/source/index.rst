@@ -10,12 +10,13 @@ raw observational data to 1d spectra. Stage 1 involves basic detector-level
 corrections for individual groups, followed by ramp fitting to make rate
 images. Stage 2 involves mode-specific corrections for individual rate images,
 followed by 1d extraction to make spectra. In this package we make available
-custom steps for both stage 1 and stage 2 data processing.
+custom steps that can be swapped in and out of both stage 1 and stage 2 data
+processing.
 
 The custom steps provided are built specifically for reducing time-series
-observations from the Mid-Infrared Instrument using when in low resolution
-spectroscopic mode. This mode is of particular use to exoplanet observations,
-and as such the algorithms are designed with precise relative fluxes in mind.
+observations from the Mid-Infrared Instrument's low resolution spectrometer.
+This mode is of particular use to exoplanet observations, and as such the
+algorithms are designed with precise relative fluxes in mind.
 
 .. toctree::
    :maxdepth: 2
@@ -30,6 +31,6 @@ Attribution
 -----------
 
 TBD.
-git status
+
 You can find other software from the Exoplanet Timeseries Characterisation
 (ExoTiC) ecosystem over on `GitHub <https://github.com/Exo-TiC>`_.

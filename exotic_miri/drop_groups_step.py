@@ -6,8 +6,8 @@ from jwst.stpipe import Step
 class DropGroupsStep(Step):
     """ Drop groups within integrations.
 
-    This steps allows the user to drop groups from each integration which
-    may adversely affect the ramps.
+    This steps enables the user to drop groups from each integration
+    which may be adversely affecting the ramps.
 
     """
 

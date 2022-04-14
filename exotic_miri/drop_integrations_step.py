@@ -6,7 +6,7 @@ from jwst.stpipe import Step
 class DropIntegrationsStep(Step):
     """ Drop integrations within data chunk.
 
-    This steps allows the user to drop integrations from a data chunk,
+    This steps enables the user to drop integrations from a data chunk,
     most likely because these groups are too severely affected by
     systematics to be worth processing. This step may also be useful
     if the user wants to test pipelines on only a small subset of data.
