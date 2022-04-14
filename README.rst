@@ -3,7 +3,7 @@ ExoTiC-MIRI
 
 **Custom steps for JWST MIRI data reduction. Interoperable with the STScI pipeline.**
 
-.. image:: https://github.com/DavoGrant/ExoTiC-MIRI/actions/workflows/python-app.yml/badge.svg
+.. image:: https://github.com/DavoGrant/ExoTiC-MIRI/workflows/unittests/badge.svg
    :target: https://github.com/DavoGrant/ExoTiC-MIRI/actions/workflows/python-app.yml
    
 .. image:: https://readthedocs.org/projects/exotic-miri/badge/?version=latest
