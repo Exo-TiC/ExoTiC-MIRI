@@ -10,9 +10,9 @@ ExoTiC-MIRI
    :target: https://exotic-miri.readthedocs.io/en/latest/?badge=latest
 
 |
+
 ::
 
    pip install exotic-miri
 
 | Read the full documentation at: `exotic-miri.readthedocs.io <https://exotic-miri.readthedocs.io/>`_
-
