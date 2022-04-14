@@ -1,0 +1,33 @@
+name: Python unittests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.8"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install numpy
+        pip install pandas
+        pip install scipy
+        pip install jwst
+        pip install matplotlib
+    - name: Test with builtin unittesting
+      run: |
+        python -m unittest tests/test_drop_groups.py
