@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
@@ -16,6 +17,7 @@ class ReferencePixelStep(Step):
     spec = """
     smoothing_length = integer(default=None)  # median smooth values over pixel length
     odd_even_rows = boolean(default=True)  # treat odd and even rows separately
+    draw_correction = boolean(default=True)  # draw correction images
     """
 
     def process(self, input):
@@ -61,8 +63,13 @@ class ReferencePixelStep(Step):
                 int_ims = integration - integration[0]
 
                 # Compute and subtract the corrections.
-                # todo: mask/replace flagged ref pixels.
-                int_ims -= self.compute_reference_pixel_correction(int_ims)
+                # todo: mask flagged ref pixels.
+                ref_pixel_correction = self.compute_reference_pixel_correction(int_ims)
+
+                if self.draw_correction:
+                    self._draw_correction_images(idx_int, ref_pixel_correction)
+
+                int_ims -= ref_pixel_correction
 
                 # Add first group back to all groups.
                 rpc_model.data[idx_int] = int_ims + integration[0]
@@ -116,3 +123,13 @@ class ReferencePixelStep(Step):
                 ref_pixels[:, start_row:end_row + 1, :], axis=1)
 
         return sm_ref_pixels
+
+    def _draw_correction_images(self, idx_int, ref_pixel_correction):
+        for idx_grp, grp_correction in enumerate(ref_pixel_correction):
+            fig, ax1 = plt.subplots(1, 1, figsize=(5, 7))
+            ax1.imshow(grp_correction, origin="lower")
+            ax1.set_title("Integration={}, group={}".format(idx_int, idx_grp))
+            ax1.set_xlabel("Column pixels")
+            ax1.set_ylabel("Row pixels")
+            plt.tight_layout()
+            plt.show()
