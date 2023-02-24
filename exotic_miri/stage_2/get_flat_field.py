@@ -11,7 +11,6 @@ class FlatFieldStep(Step):
     """
 
     spec = """
-    data_base_name = string(default=None)  # data base name.
     data_chunk_name = string(default=None)  # any data chunk name.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
     """
@@ -21,7 +20,7 @@ class FlatFieldStep(Step):
         Parameters
         ----------
         input: JWST data model
-            A data model of type SlitModel.
+            A data model of type CubeModel.
         Returns
         -------
         JWST data model
@@ -45,7 +44,7 @@ class FlatFieldStep(Step):
             flat_name = '{}_stage_1_{}.fits'.format(
                 self.data_chunk_name, stsci_flat_field.flat_suffix)
             flat_name_new = '{}_stage_2_{}.fits'.format(
-                self.data_base_name, stsci_flat_field.flat_suffix)
+                self.data_chunk_name, stsci_flat_field.flat_suffix)
             shutil.move(flat_name, os.path.join(self.stage_2_dir, flat_name_new))
 
             return input_model

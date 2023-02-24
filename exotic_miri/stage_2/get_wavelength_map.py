@@ -11,7 +11,7 @@ class WavelengthMapStep(Step):
     """
 
     spec = """
-    data_base_name = string(default=None)  # data base name.
+    data_chunk_name = string(default=None)  # data base name.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
     trim_col_start = integer(default=5)  # trim columns starts at.
     trim_col_end = integer(default=-5)  # trim columns ends at.
@@ -22,7 +22,7 @@ class WavelengthMapStep(Step):
         Parameters
         ----------
         input: JWST data model
-            A data model of type SlitModel.
+            A data model of type CubeModel.
         Returns
         -------
         array
@@ -52,7 +52,7 @@ class WavelengthMapStep(Step):
             hdu = fits.PrimaryHDU(wavelength_map)
             hdul = fits.HDUList([hdu])
             wave_map_name = '{}_stage_2_wavelengthmap.fits'.format(
-                self.data_base_name)
+                self.data_chunk_name)
             hdul.writeto(os.path.join(
                 self.stage_2_dir, wave_map_name), overwrite=True)
 

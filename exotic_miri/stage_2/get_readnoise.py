@@ -11,7 +11,6 @@ class ReadNoiseStep(Step):
     """
 
     spec = """
-    data_base_name = string(default=None)  # data base name.
     data_chunk_name = string(default=None)  # any data chunk name.
     stage_1_dir = string(default=None)  # directory of stage 1 products.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
@@ -26,7 +25,7 @@ class ReadNoiseStep(Step):
         Parameters
         ----------
         input: JWST data model
-            A data model of type SlitModel.
+            A data model of type CubeModel.
         Returns
         -------
         array or float
@@ -73,7 +72,7 @@ class ReadNoiseStep(Step):
                 # Save.
                 readnoise_model.save(path=os.path.join(
                     self.stage_2_dir, '{}_stage_2_readnoise.fits'.format(
-                        self.data_base_name)))
+                        self.data_chunk_name)))
 
                 # Median value.
                 med_read_noise = np.median(readnoise_model.data)

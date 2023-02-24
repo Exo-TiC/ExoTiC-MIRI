@@ -11,38 +11,34 @@ class IntegrationTimesStep(Step):
     """
 
     spec = """
-    data_base_name = string(default=None)  # data base name.
+    data_chunk_name = string(default=None)  # data base name.
     stage_1_dir = string(default=None)  # directory of stage 1 products.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
     """
 
-    def process(self, chunk_names):
+    def process(self, input):
         """Execute the step.
         Parameters
         ----------
-        input: list
-            rate-image chunk names.
+        input: JWST data model
+            A data model of type CubeModel.
         Returns
         -------
         array and float
             Array of integration times (BJD TDB) and duration of an
             integration in seconds.
         """
-        # Build paths.
-        chunk_paths = [os.path.join(
-            self.stage_1_dir, '{}_stage_1.fits'.format(dcn))
-            for dcn in chunk_names]
+        with datamodels.open(input) as input_model:
 
-        # Extract mid-integration times in BJD TDB.
-        mid_int_times = []
-        self.log.info('Getting integration times.')
-        for path in chunk_paths:
-            with datamodels.open(path) as input_model:
-                mid_int_times.append(np.array(
-                    input_model.int_times['int_mid_BJD_TDB']))
+            # Check input model type.
+            if not isinstance(input_model, datamodels.CubeModel):
+                self.log.error('Input is a {} which was not expected for '
+                               'IntegrationTimesStep, skipping step.'.format(
+                                str(type(input_model))))
+                return input_model
 
-        # Concat times from all chunks.
-        mid_int_times = np.concatenate(mid_int_times)
+            # Concat times from all chunks.
+            mid_int_times = np.array(input_model.int_times['int_mid_BJD_TDB'])
 
         int_time_s = np.median(np.diff(mid_int_times)) * 24. * 3600.
         self.log.info('Integration duration={} secs'.format(int_time_s))
@@ -51,7 +47,7 @@ class IntegrationTimesStep(Step):
         hdu = fits.PrimaryHDU(mid_int_times)
         hdul = fits.HDUList([hdu])
         integrations_name = '{}_stage_2_integration_times.fits'.format(
-            self.data_base_name)
+            self.data_chunk_name)
         hdul.writeto(os.path.join(
             self.stage_2_dir, integrations_name), overwrite=True)
 
