@@ -16,7 +16,7 @@ setup(
     author_email="david.grant@bristol.ac.uk",
     url="https://github.com/Exo-TiC/ExoTiC-MIRI",
     license="MIT",
-    packages=["exotic_miri.stage_1", "exotic_miri.stage_1"],
+    packages=["exotic_miri.stage_1", "exotic_miri.stage_2"],
     description="ExoTiC MIRI data reduction steps",
     long_description=read("README.rst"),
     long_description_content_type="text/x-rst",
