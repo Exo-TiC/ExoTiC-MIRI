@@ -7,6 +7,7 @@ __all__ = [
     "StitchChunksStep",
     "InspectDQFlagsStep",
     "CleanOutliersStep",
+    "BackgroundEstimateStep",
 ]
 
 from exotic_miri.stage_2.get_gain import GainStep
@@ -17,3 +18,4 @@ from exotic_miri.stage_2.get_integration_times import IntegrationTimesStep
 from exotic_miri.stage_2.stitch_chunks import StitchChunksStep
 from exotic_miri.stage_2.inspect_dq_flags import InspectDQFlagsStep
 from exotic_miri.stage_2.clean_outliers import CleanOutliersStep
+from exotic_miri.stage_2.background_subtract import BackgroundEstimateStep

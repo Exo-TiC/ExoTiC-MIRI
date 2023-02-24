@@ -13,10 +13,11 @@ class CleanOutliersStep(Step):
 
     spec = """
     window_width = integer(default=100)  # window width for spatial profile fitting.
+    dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
-    draw_cleaning_grid = boolean(default=False)  # draw every window cleaning.
     draw_cleaning_col = boolean(default=False)  # draw columns of window cleaning.
+    draw_spatial_profiles = boolean(default=False)  # draw spatial profile.
     """
 
     def __int__(self):
@@ -26,7 +27,8 @@ class CleanOutliersStep(Step):
         self.V0 = None
         self.G = None
         self.P = None
-        self.DQ = None
+        self.DQ_pipe = None
+        self.DQ_spatial = None
 
     def process(self, input):
         """Execute the step.
@@ -55,19 +57,19 @@ class CleanOutliersStep(Step):
             self.D = input_model.data
             self.V = input_model.err**2
             self.P = np.empty(self.D.shape)
-            self.DQ = np.ones(self.D.shape).astype(bool)
+            self.DQ_pipe = input_model.dq
+            self.DQ_spatial = np.ones(self.D.shape).astype(bool)
 
             # Clean via col-wise windowed spatial profile fitting.
-            self.spatial_profile()
+            self.clean()
 
         cleaned_model.data = self.D
-        self.DQ = self.DQ.astype(np.uint32) * 2**4
-        cleaned_model.dq += self.DQ
+        cleaned_model.dq += self.DQ_spatial.astype(np.uint32) * 2**4  # Set as outlier.
 
         return cleaned_model, self.P
 
-    def spatial_profile(self):
-        """ Extract using optimal extraction method of Horne 1986. """
+    def clean(self):
+        """ Clean dq bits and via optimal extraction method of Horne 1986. """
         # Iterate integrations.
         n_ints, n_rows, n_cols = self.D.shape
         for int_idx in range(n_ints):
@@ -82,8 +84,8 @@ class CleanOutliersStep(Step):
                     # is always the same size.
                     win_start_idx = max(win_end_idx - self.window_width, 0)
 
-                # Construct spatial profile.
-                P_win = self.construct_spatial_profile(
+                # Spatial profile cleaning, and dq bit cleaning too.
+                P_win = self.spatial_profile_cleaning(
                     int_idx, win_start_idx, win_end_idx)
 
                 # Normalise.
@@ -92,9 +94,9 @@ class CleanOutliersStep(Step):
                     warnings.simplefilter('ignore', RuntimeWarning)
                     P_win /= norm_win[:, np.newaxis]
                 if np.isnan(P_win).any():
-                    self.log.warn(
-                        'Spatial profile contains entire slice of negative '
-                        'values. Setting as top hat.')
+                    # self.log.warn(
+                    #     'Spatial profile contains entire slice of negative '
+                    #     'values. Setting as top hat.')
                     n_rows_win, n_cols_win = P_win.shape
                     for row_win_idx, n in enumerate(norm_win):
                         if n == 0:
@@ -103,14 +105,18 @@ class CleanOutliersStep(Step):
                 # Save window of spatial profile.
                 self.P[int_idx, win_start_idx:win_end_idx, :] = P_win
 
+            if self.draw_spatial_profiles:
+                self.draw_spatial_profile(int_idx)
+
             self.log.info('Integration={}: cleaned {} outliers '
                           'w/ spatial profile.'.format(
-                           int_idx, np.sum(~self.DQ[int_idx])))
+                           int_idx, np.sum(~self.DQ_spatial[int_idx])))
 
-    def construct_spatial_profile(self, int_idx, win_start_idx, win_end_idx):
+    def spatial_profile_cleaning(self, int_idx, win_start_idx, win_end_idx):
         """ P as per Horne 1986 table 1 (step 5). """
         P = []
         D_S = self.D[int_idx, win_start_idx:win_end_idx, :]
+        DQ_pipe_S = self.DQ_pipe[int_idx, win_start_idx:win_end_idx, :]
 
         # Iterate cols in window.
         row_pixel_idxs = np.arange(D_S.shape[0])
@@ -118,33 +124,35 @@ class CleanOutliersStep(Step):
 
             D_S_col = np.copy(D_S[:, col_idx])
             col_mask = np.ones(D_S_col.shape[0]).astype(bool)
-            col_mask[~np.isfinite(D_S_col)] = False  # set nans as bad.
-            while True:
 
+            # Set nans as bad.
+            col_mask[~np.isfinite(D_S_col)] = False
+
+            # Set selected dq flags as bad.
+            for win_idx, pixel_binary_sum in enumerate(DQ_pipe_S[:, col_idx]):
+                bit_array = np.flip(list(np.binary_repr(pixel_binary_sum, width=32))).astype(bool)
+                if np.any(bit_array[self.dq_bits_to_mask]):
+                    col_mask[win_idx] = False
+
+            while True:
                 try:
+                    if np.sum(col_mask) < 2:
+                        raise TypeError
                     # Fit polynomial to row.
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore', np.RankWarning)
                         p_coeff = np.polyfit(
                             row_pixel_idxs[col_mask], D_S_col[col_mask],
                             self.poly_order, w=None)
-                    p_row = np.polyval(p_coeff, row_pixel_idxs)
-                except np.linalg.LinAlgError as err:
-                    print('Poly fit error when constructing spatial profile.')
-                    raise err
-                except TypeError as err:
-                    if np.sum(col_mask) < 2:
-                        # print("Warning <2 good pixels in col window: int={}, row={}, "
-                        #       "col={}. Set to zeroes.".format(
-                        #       int_idx, win_start_idx, col_idx))
-                        with warnings.catch_warnings():
-                            warnings.simplefilter('ignore', np.RankWarning)
-                            p_coeff = np.polyfit(
-                                row_pixel_idxs, np.zeros(D_S_col.shape[0]),
-                                self.poly_order, w=None)
                         p_row = np.polyval(p_coeff, row_pixel_idxs)
-                    else:
-                        raise err
+
+                except (np.linalg.LinAlgError, TypeError) as err:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter('ignore', np.RankWarning)
+                        p_coeff = np.polyfit(
+                            row_pixel_idxs, np.zeros(D_S_col.shape[0]),
+                            self.poly_order, w=None)
+                        p_row = np.polyval(p_coeff, row_pixel_idxs)
 
                 # Check residuals to polynomial fit.
                 res_col = np.ma.array(D_S_col - p_row, mask=~col_mask)
@@ -160,8 +168,8 @@ class CleanOutliersStep(Step):
                             p_row, col_mask)
 
                     col_mask[max_deviation_idx] = False
-                    self.DQ[int_idx, win_start_idx + max_deviation_idx,
-                            col_idx] = False
+                    self.DQ_spatial[int_idx, win_start_idx + max_deviation_idx,
+                                    col_idx] = False
                     continue
                 else:
                     P.append(p_row)
@@ -174,8 +182,8 @@ class CleanOutliersStep(Step):
                                        p_coeff, win_idx)
 
                             # Set for nans.
-                            self.DQ[int_idx, win_start_idx + win_idx,
-                                    col_idx] = False
+                            self.DQ_spatial[int_idx, win_start_idx + win_idx,
+                                            col_idx] = False
 
                     if self.draw_cleaning_col:
                         print('Max dev={} > threshold={}'.format(
@@ -212,8 +220,8 @@ class CleanOutliersStep(Step):
         ax1.get_shared_x_axes().join(ax1, ax2)
         ax1.get_shared_y_axes().join(ax1, ax2)
 
-        ax1.imshow(~self.DQ[int_idx], origin='lower', aspect='auto',
-                   interpolation='none')
+        ax1.imshow(~self.DQ_spatial[int_idx], origin='lower',
+                   aspect='auto', interpolation='none')
         im = self.D[int_idx]
         ax2.imshow(im, origin='lower', aspect='auto',
                    interpolation='none',
@@ -245,4 +253,16 @@ class CleanOutliersStep(Step):
         ax3.legend(loc='upper center')
 
         plt.tight_layout()
+        plt.show()
+
+    def draw_spatial_profile(self, int_idx):
+        fig = plt.figure(figsize=(7, 7))
+        ax1 = fig.add_subplot(111, projection='3d')
+        row_pixel_vals = np.arange(0, self.P.shape[1])
+        col_pixel_vals = np.arange(0, self.P.shape[2])
+        xx, yy = np.meshgrid(col_pixel_vals, row_pixel_vals)
+        ax1.plot_surface(xx, yy, self.P[int_idx], cmap='cividis', lw=0., rstride=1, cstride=1, alpha=0.9)
+        ax1.set_xlabel('Pixel column')
+        ax1.set_ylabel('Pixel row')
+        ax1.set_zlabel('DN')
         plt.show()
