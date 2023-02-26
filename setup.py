@@ -11,7 +11,7 @@ def read(*parts):
 
 setup(
     name="exotic-miri",
-    version="0.0.2",
+    version="0.0.3",
     author="David Grant",
     author_email="david.grant@bristol.ac.uk",
     url="https://github.com/Exo-TiC/ExoTiC-MIRI",
@@ -23,7 +23,7 @@ setup(
     package_data={
         "": ["README.rst", "LICENSE"]
     },
-    install_requires=["numpy", "pandas", "scipy", "matplotlib", "jwst>=1.4.3"],
+    install_requires=["numpy", "pandas", "xarray", "scipy", "matplotlib", "jwst>=1.9.4"],
     include_package_data=True,
     classifiers=[
         "Intended Audience :: Science/Research",
