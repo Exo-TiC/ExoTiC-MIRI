@@ -46,9 +46,12 @@ class Extract1DOptimalStep(Step):
             # Define mask and spectral trace region.
             trace_mask_cube, trace_position = self._define_spectral_trace_region(
                 input_model.data)
-            input_model.data = input_model.data[trace_mask_cube]  # todo: fix this.
-            input_model.err = input_model.err[trace_mask_cube]
-            P = P[trace_mask_cube]
+            input_model.data = input_model.data[trace_mask_cube].reshape(
+                input_model.data.shape[0], input_model.data.shape[1], -1)
+            input_model.err = input_model.err[trace_mask_cube].reshape(
+                input_model.data.shape[0], input_model.data.shape[1], -1)
+            P = P[trace_mask_cube].reshape(
+                input_model.data.shape[0], input_model.data.shape[1], -1)
             if self.draw_aperture:
                 self._draw_trace_mask(input_model.data, trace_mask_cube)
 
