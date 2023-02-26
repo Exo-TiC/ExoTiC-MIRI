@@ -17,7 +17,7 @@ class ReferencePixelStep(Step):
     spec = """
     smoothing_length = integer(default=None)  # median smooth values over pixel length
     odd_even_rows = boolean(default=True)  # treat odd and even rows separately
-    draw_correction = boolean(default=True)  # draw correction images
+    draw_correction = boolean(default=False)  # draw correction images
     """
 
     def process(self, input):

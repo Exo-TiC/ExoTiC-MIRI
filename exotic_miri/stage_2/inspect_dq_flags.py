@@ -48,9 +48,9 @@ class InspectDQFlagsStep(Step):
                           28: "UNRELIABLE_RESET", 29: "MSA_FAILED_OPEN",
                           30: "OTHER_BAD_PIXEL", 31: "REFERENCE_PIXEL"}
 
-            # Unpack data.
-            data_cube = input.data
-            dq_cube = input.dq
+            # Unpack data. todo: undo
+            data_cube = input.data[:12]
+            dq_cube = input.dq[:12]
 
             # Find flags.
             flags_int, flags_row, flags_col = np.where(dq_cube != 0)
@@ -84,7 +84,7 @@ class InspectDQFlagsStep(Step):
 
             if self.draw_dq_flags:
                 for int_idx in range(data_cube.shape[0]):
-                    fig, _ = plt.subplots(8, 4, figsize=(9, 7))
+                    fig, _ = plt.subplots(4, 8, figsize=(9, 7))
                     fig.suptitle('Integration={}'.format(int_idx))
                     for plot_bit, ax in enumerate(fig.axes):
                         ax.imshow(dq_tesseract_bits[int_idx, :, :, plot_bit],
