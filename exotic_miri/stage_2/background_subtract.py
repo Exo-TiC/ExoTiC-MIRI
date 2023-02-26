@@ -4,9 +4,9 @@ from jwst.stpipe import Step
 import matplotlib.pyplot as plt
 
 
-class BackgroundEstimateStep(Step):
-    """ Background estimation step.
-    This steps enables the user to estimate the background.
+class BackgroundSubtractStep(Step):
+    """ Background subtraction step.
+    This steps enables the user to subtract the background.
     """
 
     spec = """
@@ -26,10 +26,14 @@ class BackgroundEstimateStep(Step):
             A data model of type CubeModel.
         Returns
         -------
-        Background data cube.
-            Estimated background.
+        JWST data model and background cube
+            A CubeModel with background subtracted, and a 3d np.array of the
+            estimated background.
         """
         with datamodels.open(input) as input_model:
+
+            # Copy input model.
+            bkg_subtracted_model = input_model.copy()
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
@@ -47,7 +51,9 @@ class BackgroundEstimateStep(Step):
             else:
                 raise ValueError("Background method not recognised.")
 
-        return bkg
+        bkg_subtracted_model.data -= bkg
+
+        return bkg_subtracted_model, bkg
 
     def constant_background(self, data):
         """ One value per integration. """

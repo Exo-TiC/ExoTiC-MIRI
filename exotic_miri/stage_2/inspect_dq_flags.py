@@ -48,9 +48,9 @@ class InspectDQFlagsStep(Step):
                           28: "UNRELIABLE_RESET", 29: "MSA_FAILED_OPEN",
                           30: "OTHER_BAD_PIXEL", 31: "REFERENCE_PIXEL"}
 
-            # Unpack data. todo: undo
-            data_cube = input.data[:12]
-            dq_cube = input.dq[:12]
+            # Unpack data.
+            data_cube = input.data
+            dq_cube = input.dq
 
             # Find flags.
             flags_int, flags_row, flags_col = np.where(dq_cube != 0)
