@@ -15,8 +15,8 @@ class Extract1DOptimalStep(Step):
     median_spatial_profile = boolean(default=False)  # use median spatial profile.
     trace_position = string(default="constant")  # locate trace method.
     aperture_center = integer(default=36)  # center of aperture.
-    aperture_left_width = integer(default=10)  # left-side of aperture width.
-    aperture_right_width = integer(default=10)  # right-side of aperture width.
+    aperture_left_width = integer(default=8)  # left-side of aperture width.
+    aperture_right_width = integer(default=8)  # right-side of aperture width.
     draw_psf_fits = boolean(default=False)  # draw gauss fits to each column.
     draw_aperture = boolean(default=False)  # draw trace fits and position.
     draw_mask = boolean(default=False)  # draw trace and dq flags mask.
@@ -44,8 +44,8 @@ class Extract1DOptimalStep(Step):
                 return None, None, None
 
             # Define mask and spectral trace region.
-            trace_mask_cube, trace_position = self._define_spectral_trace_region(
-                input_model.data)
+            trace_mask_cube, trace_position, trace_sigmas = \
+                self._define_spectral_trace_region(input_model.data)
             input_model.data = input_model.data[trace_mask_cube].reshape(
                 input_model.data.shape[0], input_model.data.shape[1], -1)
             input_model.err = input_model.err[trace_mask_cube].reshape(
@@ -118,6 +118,8 @@ class Extract1DOptimalStep(Step):
     def _define_spectral_trace_region(self, data_cube):
         if self.trace_position == "constant":
             trace_position = np.zeros(data_cube.shape[0]) + self.aperture_center
+            _, trace_sigmas = \
+                self._find_trace_position_per_integration(data_cube)
         elif self.trace_position == "gaussian_fits":
             # Find trace position per integration with gaussian fits.
             trace_position, trace_sigmas = \
@@ -136,7 +138,7 @@ class Extract1DOptimalStep(Step):
                 int_idx]:ints_mask_right_edge[int_idx]] = True
         self.log.info('Trace mask made.')
 
-        return trace_mask_cube, trace_position
+        return trace_mask_cube, trace_position, trace_sigmas
 
     def _find_trace_position_per_integration(self, data_cube, sigma_guess=1.59):
         trace_position = []

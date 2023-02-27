@@ -49,7 +49,7 @@ class AlignSpectraStep(Step):
             y_shifts.append(y_shift)
 
             if self.align_spectra:
-                shifted_pixels = row_pixels - y_shift
+                shifted_pixels = row_pixels + y_shift
                 interp_function = interpolate.interp1d(
                     row_pixels, s, kind="linear", fill_value="extrapolate")
                 aligned_spec.append(interp_function(shifted_pixels))
@@ -70,7 +70,7 @@ class AlignSpectraStep(Step):
         psf_template = np.median(psfs, axis=0)
         for p in psfs:
             x_shift = self.cross_correlator(
-                p, psf_template, trim_spec=1, high_res_factor=0.005, trim_fit=7)
+                p, psf_template, trim_spec=3, high_res_factor=0.005, trim_fit=7)
             x_shifts.append(x_shift)
 
         x_shifts = np.array(x_shifts)

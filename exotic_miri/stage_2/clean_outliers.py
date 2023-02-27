@@ -18,6 +18,7 @@ class CleanOutliersStep(Step):
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
     draw_cleaning_col = boolean(default=False)  # draw columns of window cleaning.
     draw_spatial_profiles = boolean(default=False)  # draw spatial profile.
+    no_clean = boolean(default=False)  # skip clean, just rm nans, for quick tests.
     """
 
     def __int__(self):
@@ -54,6 +55,11 @@ class CleanOutliersStep(Step):
                                 str(type(input_model))))
                 return input_model
 
+            if self.no_clean:
+                cleaned_model.data = np.nan_to_num(cleaned_model.data)
+                return cleaned_model, np.empty(cleaned_model.shape), \
+                       np.empty(cleaned_model.shape[:2] + (5,))
+
             self.D = input_model.data
             self.V = input_model.err**2
             self.P = np.empty(self.D.shape)
@@ -64,9 +70,17 @@ class CleanOutliersStep(Step):
             self.clean()
 
         cleaned_model.data = self.D
-        cleaned_model.dq += self.DQ_spatial.astype(np.uint32) * 2**4  # Set as outlier.
+        cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier.
 
-        return cleaned_model, self.P
+        # Count number of replaced pixels on and near the spectral trace.
+        outliers = []
+        for region_width in range(5):
+            outliers.append(np.sum(cleaned_model.dq[
+                :, :, 36 - region_width:36 + region_width + 1] > 0,
+                axis=2)[:, :, np.newaxis])
+        outliers = np.concatenate(outliers, axis=2)
+
+        return cleaned_model, self.P, outliers
 
     def clean(self):
         """ Clean dq bits and via optimal extraction method of Horne 1986. """
