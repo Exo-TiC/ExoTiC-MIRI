@@ -50,6 +50,7 @@ class ReadNoiseStep(Step):
             ystart = data_header['SUBSTRT2']
             nx = data_header['SUBSIZE1']
             ny = data_header['SUBSIZE2']
+            n_groups = data_header[""]
 
             # Extract readnoise.
             readnoise_filename = self.get_reference_file(input_model, 'readnoise')
@@ -67,7 +68,7 @@ class ReadNoiseStep(Step):
                     :, self.trim_col_start:self.trim_col_end].copy()
 
                 # Convert from DN to electrons.
-                readnoise_model.data *= self.gain_value
+                readnoise_model.data *= self.gain_value / np.sqrt(2. * nframes)
 
                 # Save.
                 readnoise_model.save(path=os.path.join(

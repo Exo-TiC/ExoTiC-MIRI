@@ -57,8 +57,8 @@ class CleanOutliersStep(Step):
 
             if self.no_clean:
                 cleaned_model.data = np.nan_to_num(cleaned_model.data)
-                return cleaned_model, np.empty(cleaned_model.shape), \
-                       np.empty(cleaned_model.shape[:2] + (5,))
+                outliers = self.count_outliers(cleaned_model)
+                return cleaned_model, np.empty(cleaned_model.shape), outliers
 
             self.D = input_model.data
             self.V = input_model.err**2
@@ -73,12 +73,7 @@ class CleanOutliersStep(Step):
         cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier.
 
         # Count number of replaced pixels on and near the spectral trace.
-        outliers = []
-        for region_width in range(5):
-            outliers.append(np.sum(cleaned_model.dq[
-                :, :, 36 - region_width:36 + region_width + 1] > 0,
-                axis=2)[:, :, np.newaxis])
-        outliers = np.concatenate(outliers, axis=2)
+        outliers = self.count_outliers(cleaned_model)
 
         return cleaned_model, self.P, outliers
 
@@ -213,6 +208,15 @@ class CleanOutliersStep(Step):
         P[P < 0.] = 0.
 
         return P
+
+    def count_outliers(self, cleaned_model):
+        outliers = []
+        for region_width in range(5):
+            outliers.append(np.sum(cleaned_model.dq[
+                :, :, 36 - region_width:36 + region_width + 1] > 0,
+                axis=2)[:, :, np.newaxis])
+
+        return np.concatenate(outliers, axis=2)
 
     def draw_poly_fit(self, idx_slice, x_data, y_data, x_model, y_model):
         """ Draw the polynomial fit. """

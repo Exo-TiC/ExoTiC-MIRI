@@ -38,7 +38,7 @@ class FlatFieldStep(Step):
 
             # Using stsci flats step.
             stsci_flat_field = flat_field_step.FlatFieldStep()
-            stsci_flat_field.call(input_model, save_interpolated_flat=True)
+            output_model = stsci_flat_field.call(input_model, save_interpolated_flat=True)
 
             # Save.
             flat_name = '{}_stage_1_{}.fits'.format(
@@ -47,4 +47,4 @@ class FlatFieldStep(Step):
                 self.data_chunk_name, stsci_flat_field.flat_suffix)
             shutil.move(flat_name, os.path.join(self.stage_2_dir, flat_name_new))
 
-            return input_model
+            return output_model
