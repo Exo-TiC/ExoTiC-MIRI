@@ -8,11 +8,13 @@ import matplotlib.patches as patches
 
 class CleanOutliersStep(Step):
     """ Clean outliers step.
-    This steps enables the user to clean outliers.
+    This steps enables the user to clean outliers. NB. bit values as per:
+    `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references
+    _general/references_general.html?#data-quality-flags`.
     """
 
     spec = """
-    window_width = integer(default=100)  # window width for spatial profile fitting.
+    window_widths = int_list(default=None)  # window widths for spatial profile fitting.
     dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
@@ -79,23 +81,28 @@ class CleanOutliersStep(Step):
 
     def clean(self):
         """ Clean dq bits and via optimal extraction method of Horne 1986. """
-        # Iterate integrations.
+        # Prep cycling of window widths to span all rows.
         n_ints, n_rows, n_cols = self.D.shape
+        window_widths = np.tile(self.window_widths, int(np.ceil(
+            n_rows / np.sum(self.window_widths))))
+        window_start_idxs = np.concatenate([[0, ], np.cumsum(window_widths)])
+
+        # Iterate integrations.
         for int_idx in range(n_ints):
 
             # Iterate windows of several rows.
-            for win_start_idx in range(0, n_rows, self.window_width):
+            for win_start_idx, win_end_idx in zip(window_start_idxs, window_start_idxs[1:]):
 
                 # Set window in rows.
-                win_end_idx = min(win_start_idx + self.window_width, n_rows)
-                if win_end_idx == n_rows:
-                    # If final window, set left side back so window
-                    # is always the same size.
-                    win_start_idx = max(win_end_idx - self.window_width, 0)
+                win_start_idx = min(win_start_idx, n_rows)
+                win_end_idx = min(win_end_idx, n_rows)
+                win_width = win_end_idx - win_start_idx
+                if win_width == 0:
+                    continue
 
                 # Spatial profile cleaning, and dq bit cleaning too.
                 P_win = self.spatial_profile_cleaning(
-                    int_idx, win_start_idx, win_end_idx)
+                    int_idx, win_start_idx, win_end_idx, win_width)
 
                 # Normalise.
                 norm_win = np.sum(P_win, axis=1)
@@ -121,7 +128,7 @@ class CleanOutliersStep(Step):
                           'w/ spatial profile.'.format(
                            int_idx, np.sum(~self.DQ_spatial[int_idx])))
 
-    def spatial_profile_cleaning(self, int_idx, win_start_idx, win_end_idx):
+    def spatial_profile_cleaning(self, int_idx, win_start_idx, win_end_idx, win_width):
         """ P as per Horne 1986 table 1 (step 5). """
         P = []
         D_S = self.D[int_idx, win_start_idx:win_end_idx, :]
@@ -174,7 +181,7 @@ class CleanOutliersStep(Step):
                             dev_col[max_deviation_idx], self.outlier_threshold))
                         self.draw_poly_inter_fit(
                             int_idx, col_idx, win_start_idx, win_end_idx,
-                            p_row, col_mask)
+                            win_width, p_row, col_mask)
 
                     col_mask[max_deviation_idx] = False
                     self.DQ_spatial[int_idx, win_start_idx + max_deviation_idx,
@@ -200,7 +207,7 @@ class CleanOutliersStep(Step):
                         print('Final cleaned data and fit.')
                         self.draw_poly_inter_fit(
                             int_idx, col_idx, win_start_idx, win_end_idx,
-                            p_row, final=True)
+                            win_width, p_row, final=True)
                     break
 
         # Enforce positivity.
@@ -231,8 +238,8 @@ class CleanOutliersStep(Step):
         plt.tight_layout()
         plt.show()
 
-    def draw_poly_inter_fit(self, int_idx, col_idx, win_start_idx,
-                            win_end_idx, p_col, col_mask=None, final=False):
+    def draw_poly_inter_fit(self, int_idx, col_idx, win_start_idx, win_end_idx,
+                            win_width, p_col, col_mask=None, final=False):
         """ Draw the polynomial fit. """
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(13, 8))
         ax1.get_shared_x_axes().join(ax1, ax2)
@@ -247,7 +254,7 @@ class CleanOutliersStep(Step):
                    vmax=np.nanpercentile(im, 99.5))
 
         rect = patches.Rectangle(
-            (col_idx - 0.5, win_start_idx - 0.5), 1, self.window_width,
+            (col_idx - 0.5, win_start_idx - 0.5), 1, win_width,
             linewidth=1, edgecolor='#ffffff', facecolor='none')
         ax1.add_patch(rect)
 
