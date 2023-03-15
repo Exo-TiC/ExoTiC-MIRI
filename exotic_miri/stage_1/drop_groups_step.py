@@ -64,25 +64,11 @@ class DropGroupsStep(Step):
                 thinned_model.meta.cal_step.drop_groups = 'SKIPPED'
                 return thinned_model
 
-            # Compute wanted groups.
-            current_groups = np.arange(0, current_n_groups, 1)
-            wanted_groups = current_groups[~np.isin(current_groups, self.drop_groups)]
-
-            # Drop groups.
-            thinned_model.data = thinned_model.data[:, wanted_groups, :, :]
-            thinned_model.err = thinned_model.err[:, wanted_groups, :, :]
-            thinned_model.groupdq = thinned_model.groupdq[:, wanted_groups, :, :]
+            # Set dropped groups as do not use 2**0.
+            thinned_model.groupdq[:, self.drop_groups, :, :] = np.bitwise_or(
+                thinned_model.groupdq[:, self.drop_groups, :, :], 2**0)
 
             # Update meta.
-            thinned_model.meta.ngroups = thinned_model.data.shape[1]
-            thinned_model.meta.ngroups_file = thinned_model.data.shape[1]
-            span_g_wanted = np.max(wanted_groups) + 1 - np.min(wanted_groups)
-            span_decrease_f = span_g_wanted / current_n_groups
-            thinned_model.meta.exposure.integration_time = \
-                thinned_model.meta.exposure.integration_time * span_decrease_f
-            thinned_model.meta.exposure.ngroups = thinned_model.data.shape[1]
-            if thinned_model._shape:
-                thinned_model._shape = thinned_model.data.shape
             thinned_model.meta.cal_step.drop_groups = 'COMPLETE'
 
         return thinned_model
