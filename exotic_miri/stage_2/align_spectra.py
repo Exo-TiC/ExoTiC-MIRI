@@ -64,9 +64,9 @@ class AlignSpectraStep(Step):
         aligned_spec = np.array(aligned_spec)
         aligned_spec_err = np.array(aligned_spec_err)
 
-        # Find shifts in psf, cross-dispersion direction.
+        # Find shifts in psf, cross-dispersion direction. TODO: define high snr region better.
         x_shifts = []
-        psfs = np.sum(rateimages_cube, axis=1)
+        psfs = np.sum(rateimages_cube[:, 200:390, 12:68], axis=1)
         psf_template = np.median(psfs, axis=0)
         for p in psfs:
             x_shift = self.cross_correlator(
