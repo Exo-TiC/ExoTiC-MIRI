@@ -8,6 +8,7 @@ class RegroupStep(Step):
     This steps enables the user to regroup integrations, comprised
     of n groups, into several smaller integrations, comprised of m
     groups, where n is a multiple of m.
+    # TODO: add support for non-multiples.
 
     """
 
