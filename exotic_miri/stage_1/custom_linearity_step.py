@@ -39,8 +39,8 @@ class CustomLinearityStep(Step):
                 linearised_model.meta.cal_step.custom_debiased = 'SKIPPED'
                 return linearised_model
 
-        # # todo: account for saturation, other dq flags, and jumps (chicken and egg).
-        # # todo: could try mask based on DN level rather than linear grps range.
+        # todo: account for saturation, other dq flags, and jumps (chicken and egg).
+        # todo: could try mask based on DN level rather than linear grps range.
 
         groups_all = np.arange(12, 173)  # Exclude grps beyond help, e.g., final.
         groups_fit = np.arange(12, 40)
