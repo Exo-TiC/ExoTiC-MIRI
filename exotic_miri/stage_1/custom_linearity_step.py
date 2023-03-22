@@ -41,6 +41,7 @@ class CustomLinearityStep(Step):
 
         # todo: account for saturation, other dq flags, and jumps (chicken and egg).
         # todo: could try mask based on DN level rather than linear grps range.
+        # todo: also try not per amp but per col.
 
         groups_all = np.arange(12, 173)  # Exclude grps beyond help, e.g., final.
         groups_fit = np.arange(12, 40)
@@ -74,7 +75,22 @@ class CustomLinearityStep(Step):
         # Compute linearity correction coefficients for
         # F = c0 + c1 * DN + c2 * DN**2 + c3 * DN**3 + c4 * DN**4.
         for amp_idx in range(4):
-            corr_coeffs = np.polyfit(amplifier_dns[amp_idx], amplifier_fs[amp_idx], 4)
+            fix_lin = True
+            if fix_lin:
+                x = np.array(amplifier_dns[amp_idx])
+                y = amplifier_fs[amp_idx]
+
+                xx_fix = np.vstack((x, np.ones_like(x))).T
+                xx_fit = np.vstack((x**4, x**3, x**2)).T
+
+                p_fix = np.array([1., 0.])
+                y_fix = np.dot(p_fix, xx_fix.T)
+
+                p_fit = np.linalg.lstsq(xx_fit, y - y_fix, rcond=None)[0]
+                corr_coeffs = np.concatenate([p_fit, p_fix])
+            else:
+                corr_coeffs = np.polyfit(amplifier_dns[amp_idx], amplifier_fs[amp_idx], 4)
+
             amplifier_ccs[amp_idx].extend(corr_coeffs)
             linearised_model.data[:, :, :, amp_idx::4] = self.linearity_correction(
                 linearised_model.data[:, :, :, amp_idx::4], corr_coeffs)
