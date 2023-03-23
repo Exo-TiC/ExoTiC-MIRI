@@ -6,8 +6,8 @@ import matplotlib.colors as mcolors
 
 
 class CustomLinearityStep(Step):
-    """ Apply custom linearity step.
-    This steps enables the user to apply self-cal linearity corrections.
+    """ Build custom linearity step.
+    This steps enables the user to build self-cal linearity corrections.
     """
 
     spec = """
