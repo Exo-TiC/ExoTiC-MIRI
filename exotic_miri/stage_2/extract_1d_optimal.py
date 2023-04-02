@@ -52,6 +52,8 @@ class Extract1DOptimalStep(Step):
                 input_model.data.shape[0], input_model.data.shape[1], -1)
             P = P[trace_mask_cube].reshape(
                 input_model.data.shape[0], input_model.data.shape[1], -1)
+            readnoise = readnoise[trace_mask_cube].reshape(
+                input_model.data.shape[0], input_model.data.shape[1], -1)
             if self.draw_aperture:
                 self._draw_trace_mask(input_model.data, trace_mask_cube)
 
@@ -75,6 +77,7 @@ class Extract1DOptimalStep(Step):
                 integration = input_model.data[int_idx, :, :]
                 variance = input_model.err[int_idx, :, :]**2
                 spatial_profile = P[int_idx, :, :]
+                rn = readnoise[int_idx, :, :]
 
                 # Extract standard spectrum.
                 f, var_f = self.extract_standard_spectra(
@@ -82,7 +85,7 @@ class Extract1DOptimalStep(Step):
 
                 # Revise variance estimate.
                 var_revised = self.revise_variance_estimates(
-                    f, spatial_profile, readnoise)
+                    f, spatial_profile, rn)
 
                 # Extract optimal spectrum.
                 f_opt, var_f_opt = self.extract_optimal_spectrum(
