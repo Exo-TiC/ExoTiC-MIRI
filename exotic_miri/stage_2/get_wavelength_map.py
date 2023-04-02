@@ -15,6 +15,7 @@ class WavelengthMapStep(Step):
     stage_2_dir = string(default=None)  # directory of stage 2 products.
     trim_col_start = integer(default=5)  # trim columns starts at.
     trim_col_end = integer(default=-5)  # trim columns ends at.
+    save = boolean(default=False)  # save map to disk as .fits.
     """
 
     def process(self, input):
@@ -48,12 +49,12 @@ class WavelengthMapStep(Step):
             wavelength_map = wavelength_map[
                 :, self.trim_col_start:self.trim_col_end]
 
-            # Save.
-            hdu = fits.PrimaryHDU(wavelength_map)
-            hdul = fits.HDUList([hdu])
-            wave_map_name = '{}_stage_2_wavelengthmap.fits'.format(
-                self.data_chunk_name)
-            hdul.writeto(os.path.join(
-                self.stage_2_dir, wave_map_name), overwrite=True)
+            if self.save:
+                hdu = fits.PrimaryHDU(wavelength_map)
+                hdul = fits.HDUList([hdu])
+                wave_map_name = '{}_wavelengthmap.fits'.format(
+                    self.data_chunk_name)
+                hdul.writeto(os.path.join(
+                    self.stage_2_dir, wave_map_name), overwrite=True)
 
         return wavelength_map

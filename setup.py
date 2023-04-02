@@ -11,7 +11,7 @@ def read(*parts):
 
 setup(
     name="exotic-miri",
-    version="0.0.6",
+    version="0.0.7",
     author="David Grant",
     author_email="david.grant@bristol.ac.uk",
     url="https://github.com/Exo-TiC/ExoTiC-MIRI",

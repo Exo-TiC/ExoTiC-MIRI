@@ -96,7 +96,7 @@ class Extract1DOptimalStep(Step):
         if self.draw_spectra:
             self._draw_extracted_spectra(wavelengths, fs_opt)
 
-        return wavelengths, fs_opt, var_fs_opt**0.5
+        return wavelengths, fs_opt, var_fs_opt**0.5, trace_sigmas
 
     def extract_standard_spectra(self, D_S, V):
         """ f and var_f as per Horne 1986 table 1 (step 4). """

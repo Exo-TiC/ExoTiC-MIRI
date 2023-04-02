@@ -72,7 +72,7 @@ class CleanOutliersStep(Step):
             self.clean()
 
         cleaned_model.data = self.D
-        cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier.
+        cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier. todo check if already outlier
 
         # Count number of replaced pixels on and near the spectral trace.
         outliers = self.count_outliers(cleaned_model)
