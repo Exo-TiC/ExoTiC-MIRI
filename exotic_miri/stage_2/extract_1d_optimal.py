@@ -77,7 +77,7 @@ class Extract1DOptimalStep(Step):
                 integration = input_model.data[int_idx, :, :]
                 variance = input_model.err[int_idx, :, :]**2
                 spatial_profile = P[int_idx, :, :]
-                rn = np.nanmedian(readnoise[int_idx, :, :])  # todo: fixme
+                rn = readnoise[int_idx, :, :]
 
                 # Extract standard spectrum.
                 f, var_f = self.extract_standard_spectra(
@@ -149,8 +149,9 @@ class Extract1DOptimalStep(Step):
         col_pixels = np.arange(0, data_cube.shape[2], 1)
         for int_idx, int_data in enumerate(data_cube):
 
-            # Median stack rows.
-            median_row_data = np.median(int_data, axis=0)
+            # Median stack rows. TODO: make wv dep.
+            median_row_data = np.median(int_data[200:390, 12:68], axis=0)
+            col_pixels = np.arange(12, 68, 1)
 
             try:
                 popt, pcov = curve_fit(
