@@ -11,6 +11,12 @@ class CustomLinearityStep(Step):
     """
 
     spec = """
+    group_idx_start_fit = integer(default=12)  # first group index included in linear fit
+    group_idx_end_fit = integer(default=40)  # end group index included in linear fit
+    group_idx_start_derive = integer(default=12)  # first group index included in poly deviation
+    group_idx_end_derive = integer(default=173)  # end group index included in poly deviation
+    row_idx_start_used = integer(default=364)  # first row index to be included in derivation
+    row_idx_end_used = integer(default=394)  # end row index to be included in derivation
     draw_corrections = boolean(default=False)  # draw corrections.
     """
 
@@ -38,9 +44,9 @@ class CustomLinearityStep(Step):
             # todo: could try mask based on DN level rather than linear grps range.
             # todo: also try not per amp but per col.
 
-            groups_all = np.arange(12, 173)  # Exclude grps beyond help, e.g., final.
-            groups_fit = np.arange(12, 40)
-            rows = (364, 394)
+            groups_all = np.arange(self.group_idx_start_derive, self.group_idx_end_derive)  # Exclude grps beyond help, e.g., final.
+            groups_fit = np.arange(self.group_idx_start_fit, self.group_idx_end_fit)
+            rows = (self.row_idx_start_used, self.row_idx_end_used)
             amplifier_cols = [34, 35, 36, 37, 38]
             amplifier_idxs = [2, 3, 0, 1, 2]
             amplifier_dns = [[], [], [], []]
