@@ -18,6 +18,8 @@ class CleanOutliersStep(Step):
     dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
+    spatial_profile_left_idx = integer(default=26)  # left-side of aperture width.
+    spatial_profile_right_idx = integer(default=47)  # right-side of aperture width.
     draw_cleaning_col = boolean(default=False)  # draw columns of window cleaning.
     draw_spatial_profiles = boolean(default=False)  # draw spatial profile.
     no_clean = boolean(default=False)  # skip clean, just rm nans, for quick tests.
@@ -105,21 +107,26 @@ class CleanOutliersStep(Step):
                     int_idx, win_start_idx, win_end_idx, win_width)
 
                 # Normalise.
-                norm_win = np.sum(P_win, axis=1)
+                P_win_sub = P_win[:, self.spatial_profile_left_idx:self.spatial_profile_right_idx]
+                norm_win = np.sum(P_win_sub, axis=1)
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore', RuntimeWarning)
-                    P_win /= norm_win[:, np.newaxis]
-                if np.isnan(P_win).any():
+                    P_win_sub /= norm_win[:, np.newaxis]
+                if np.isnan(P_win_sub).any():
                     # self.log.warn(
                     #     'Spatial profile contains entire slice of negative '
                     #     'values. Setting as top hat.')
-                    n_rows_win, n_cols_win = P_win.shape
+                    n_rows_win, n_cols_win = P_win_sub.shape
                     for row_win_idx, n in enumerate(norm_win):
                         if n == 0:
-                            P_win[row_win_idx, :] = 1. / n_rows_win
+                            P_win_sub[row_win_idx, :] = 1. / n_rows_win
+                P_win_full = np.concatenate(
+                    [np.zeros((P_win.shape[0], self.spatial_profile_left_idx)),
+                     P_win_sub,
+                     np.zeros((P_win.shape[0], P_win.shape[1] - self.spatial_profile_right_idx))], axis=1)
 
                 # Save window of spatial profile.
-                self.P[int_idx, win_start_idx:win_end_idx, :] = P_win
+                self.P[int_idx, win_start_idx:win_end_idx, :] = P_win_full
 
             if self.draw_spatial_profiles:
                 self.draw_spatial_profile(int_idx)
