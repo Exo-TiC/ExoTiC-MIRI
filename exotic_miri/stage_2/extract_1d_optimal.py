@@ -36,6 +36,9 @@ class Extract1DOptimalStep(Step):
         """
         with datamodels.open(input) as input_model:
 
+            # Copy input model.
+            extract_model = input_model.copy()
+
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
                 self.log.error('Input is a {} which was not expected for '
@@ -45,17 +48,17 @@ class Extract1DOptimalStep(Step):
 
             # Define mask and spectral trace region.
             trace_mask_cube, trace_position, trace_sigmas = \
-                self._define_spectral_trace_region(input_model.data)
-            input_model.data = input_model.data[trace_mask_cube].reshape(
-                input_model.data.shape[0], input_model.data.shape[1], -1)
-            input_model.err = input_model.err[trace_mask_cube].reshape(
-                input_model.data.shape[0], input_model.data.shape[1], -1)
+                self._define_spectral_trace_region(extract_model.data)
+            extract_model.data = extract_model.data[trace_mask_cube].reshape(
+                extract_model.data.shape[0], extract_model.data.shape[1], -1)
+            extract_model.err = extract_model.err[trace_mask_cube].reshape(
+                extract_model.data.shape[0], extract_model.data.shape[1], -1)
             P = P[trace_mask_cube].reshape(
-                input_model.data.shape[0], input_model.data.shape[1], -1)
+                extract_model.data.shape[0], extract_model.data.shape[1], -1)
             readnoise = readnoise[trace_mask_cube].reshape(
-                input_model.data.shape[0], input_model.data.shape[1], -1)
+                extract_model.data.shape[0], extract_model.data.shape[1], -1)
             if self.draw_aperture:
-                self._draw_trace_mask(input_model.data, trace_mask_cube)
+                self._draw_trace_mask(extract_model.data, trace_mask_cube)
 
             # Get wavelengths on trace.
             self.log.info('Assigning wavelengths using trace center.')
@@ -67,15 +70,18 @@ class Extract1DOptimalStep(Step):
                 P = np.median(P, axis=0)
                 P /= np.sum(P, axis=1)[:, np.newaxis]
                 P = np.broadcast_to(
-                    P[np.newaxis, :, :], shape=input_model.data.shape)
+                    P[np.newaxis, :, :], shape=extract_model.data.shape)
                 self.log.info('Using median spatial profile.')
+            else:
+                # Re-norm rows in case different aperture width.
+                P /= np.sum(P, axis=2)[:, :, np.newaxis]
 
             # Iterate integrations.
             fs_opt = []
             var_fs_opt = []
-            for int_idx in range(input_model.data.shape[0]):
-                integration = input_model.data[int_idx, :, :]
-                variance = input_model.err[int_idx, :, :]**2
+            for int_idx in range(extract_model.data.shape[0]):
+                integration = extract_model.data[int_idx, :, :]
+                variance = extract_model.err[int_idx, :, :]**2
                 spatial_profile = P[int_idx, :, :]
                 rn = readnoise[int_idx, :, :]
 
