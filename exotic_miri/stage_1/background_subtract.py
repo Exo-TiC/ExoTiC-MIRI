@@ -4,9 +4,9 @@ from jwst.stpipe import Step
 import matplotlib.pyplot as plt
 
 
-class BackgroundSubtractStep(Step):
-    """ Background subtraction step.
-    This steps enables the user to subtract the background.
+class GroupBackgroundSubtractStep(Step):
+    """ Group background subtraction step.
+    This steps enables the user to subtract the background at the group level.
     """
 
     spec = """
@@ -26,9 +26,8 @@ class BackgroundSubtractStep(Step):
             A data model of type CubeModel.
         Returns
         -------
-        JWST data model and background cube
-            A CubeModel with background subtracted, and a 3d np.array of the
-            estimated background.
+        JWST data model
+            A RampModel with background subtracted.
         """
         with datamodels.open(input) as input_model:
 
@@ -36,24 +35,27 @@ class BackgroundSubtractStep(Step):
             bkg_subtracted_model = input_model.copy()
 
             # Check input model type.
-            if not isinstance(input_model, datamodels.CubeModel):
+            if not isinstance(input_model, datamodels.RampModel):
                 self.log.error('Input is a {} which was not expected for '
                                'BackgroundSubtractStep, skipping step.'.format(
                                 str(type(input_model))))
                 return input_model
 
-            if self.method == "constant":
-                bkg = self.constant_background(input_model.data)
-            elif self.method == "row_wise":
-                bkg = self.row_wise_background(input_model.data)
-            elif self.method == "col_wise":
-                bkg = self.col_wise_background(input_model.data)
-            else:
-                raise ValueError("Background method not recognised.")
+            # Iterate integrations.
+            for int_idx in range(input_model.data.shape[0]):
 
-        bkg_subtracted_model.data -= bkg
+                if self.method == "constant":
+                    bkg = self.constant_background(input_model.data[int_idx])
+                elif self.method == "row_wise":
+                    bkg = self.row_wise_background(input_model.data[int_idx])
+                elif self.method == "col_wise":
+                    bkg = self.col_wise_background(input_model.data[int_idx])
+                else:
+                    raise ValueError("Background method not recognised.")
 
-        return bkg_subtracted_model, bkg
+                bkg_subtracted_model.data[int_idx] -= bkg
+
+        return bkg_subtracted_model
 
     def constant_background(self, data):
         """ One value per integration. """
