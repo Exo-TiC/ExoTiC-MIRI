@@ -5,31 +5,37 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
 
-class CustomLinearityStep(Step):
-    """ Build custom linearity step.
-    This steps enables the user to build self-cal linearity corrections.
+class SetCustomLinearity(Step):
+    """ Set a custom linearity correction.
+
+    This enables the user to build self-calibrated linearity corrections
+    per amplifier.
+
     """
 
     spec = """
-    group_idx_start_fit = integer(default=12)  # first group index included in linear fit
+    group_idx_start_fit = integer(default=10)  # first group index included in linear fit
     group_idx_end_fit = integer(default=40)  # end group index included in linear fit
-    group_idx_start_derive = integer(default=12)  # first group index included in poly deviation
-    group_idx_end_derive = integer(default=173)  # end group index included in poly deviation
-    row_idx_start_used = integer(default=364)  # first row index to be included in derivation
-    row_idx_end_used = integer(default=394)  # end row index to be included in derivation
-    draw_corrections = boolean(default=False)  # draw corrections.
+    group_idx_start_derive = integer(default=10)  # first group index included in poly deviation
+    group_idx_end_derive = integer(default=-1)  # end group index included in poly deviation
+    row_idx_start_used = integer(default=350)  # first row index to be included in derivation
+    row_idx_end_used = integer(default=386)  # end row index to be included in derivation
+    draw_corrections = boolean(default=False)  # draw corrections
     """
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
-        JWST linearity_model
+        JWST linearity_model:
             A linearity model for override_linearity usage.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -39,10 +45,6 @@ class CustomLinearityStep(Step):
                                'CustomLinearityStep, skipping step.'.format(
                                 str(type(input_model))))
                 return None
-
-            # todo: account for saturation, other dq flags, and jumps (chicken and egg).
-            # todo: could try mask based on DN level rather than linear grps range.
-            # todo: also try not per amp but per col.
 
             groups_all = np.arange(self.group_idx_start_derive, self.group_idx_end_derive)  # Exclude grps beyond help, e.g., final.
             groups_fit = np.arange(self.group_idx_start_fit, self.group_idx_end_fit)

@@ -4,9 +4,9 @@ from jwst.stpipe import Step
 
 
 class DropGroupsStep(Step):
-    """ Drop groups within integrations.
+    """ Drop groups step.
 
-    This steps enables the user to drop groups from each integration
+    This step enables the user to drop groups from all integrations
     which may be adversely affecting the ramps.
 
     """
@@ -26,8 +26,8 @@ class DropGroupsStep(Step):
         Returns
         -------
         JWST data model
-            A RampModel with updated groups, unless the
-            step is skipped in which case `input_model` is returned.
+            A RampModel with groupdg flags set as do_not_use (2**0).
+
         """
         with datamodels.open(input) as input_model:
 

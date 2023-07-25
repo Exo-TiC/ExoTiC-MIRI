@@ -1,13 +1,13 @@
-import os
 import numpy as np
-from astropy.io import fits
 from jwst import datamodels
 from jwst.stpipe import Step
 
 
-class IntegrationTimesStep(Step):
-    """ Get integration times step.
-    This steps enables the user to get and save the integration times.
+class GetIntegrationTimes(Step):
+    """ Get the integration times.
+
+    This enables the user to get and save the integration times.
+
     """
 
     spec = """
@@ -16,15 +16,18 @@ class IntegrationTimesStep(Step):
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
-        fits.table and float
+        (fits.table, float)
             Table of integration times data and duration of an
             integration in seconds.
+
         """
         with datamodels.open(input) as input_model:
 

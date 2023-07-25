@@ -4,11 +4,11 @@ from jwst.stpipe import Step
 
 
 class DropIntegrationsStep(Step):
-    """ Drop integrations within data chunk.
+    """ Drop integrations step.
 
-    This steps enables the user to drop integrations from a data chunk,
-    most likely because these groups are too severely affected by
-    systematics to be worth processing. This step may also be useful
+    This step enables the user to drop integrations from a data chunk,
+    most likely because these integrations are too severely affected by
+    systematics to be worth processing, or this step may also be useful
     if the user wants to test pipelines on only a small subset of data.
 
     """
@@ -28,8 +28,8 @@ class DropIntegrationsStep(Step):
         Returns
         -------
         JWST data model
-            A RampModel with updated integrations, unless the
-            step is skipped in which case `input_model` is returned.
+            A RampModel with dropped integrations.
+
         """
         with datamodels.open(input) as input_model:
 

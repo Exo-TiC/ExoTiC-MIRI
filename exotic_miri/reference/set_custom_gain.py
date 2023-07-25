@@ -3,9 +3,11 @@ from jwst import datamodels
 from jwst.stpipe import Step
 
 
-class CustomGainStep(Step):
-    """ Build custom gain step.
-    This steps enables the user to build custom gain corrections.
+class SetCustomGain(Step):
+    """ Set a custom gain.
+
+    This enables the user to set a custom gain value.
+
     """
 
     spec = """
@@ -14,14 +16,17 @@ class CustomGainStep(Step):
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
         JWST gain_model
             A gain model for override_gain usage.
+
         """
         with datamodels.open(input) as input_model:
 

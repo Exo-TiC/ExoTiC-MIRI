@@ -7,8 +7,10 @@ from scipy.optimize import curve_fit
 
 class Extract1DOptimalStep(Step):
     """ Optimal extraction step.
+
     This steps enables the user extract 1d stellar spectra using
     optimal extraction.
+
     """
 
     spec = """
@@ -25,14 +27,17 @@ class Extract1DOptimalStep(Step):
 
     def process(self, input, wavelength_map, P, readnoise):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model, wavelength map, spatial profile, and readnoise.
             A data model of type CubeModel, a wavelength map array,
             a spatial profile cube, and a readnoise value.
+
         Returns
         -------
-        wavelengths, spectra, and spectra uncertainties
+        (wavelengths, spectra, and spectra uncertainties)
+
         """
         with datamodels.open(input) as input_model:
 

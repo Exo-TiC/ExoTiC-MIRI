@@ -27,8 +27,8 @@ class RegroupStep(Step):
         Returns
         -------
         JWST data model
-            A RampModel with updated integration groupings, unless the
-            step is skipped in which case `input_model` is returned.
+            A RampModel with updated integration groupings.
+
         """
         with datamodels.open(input) as input_model:
 

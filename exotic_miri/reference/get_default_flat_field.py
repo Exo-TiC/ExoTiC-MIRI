@@ -5,27 +5,32 @@ from jwst.stpipe import Step
 from jwst.pipeline.calwebb_spec2 import flat_field_step
 
 
-class FlatFieldStep(Step):
-    """ Get flat field step.
-    This steps enables the user to get and save flat field data.
+class GetDefaultFlatField(Step):
+    """ Get the default flat field.
+
+    This enables the user to get and save flat field data from
+    the default CRDS files.
+
     """
 
     spec = """
-    data_chunk_name = string(default=None)  # any data chunk name.
+    data_seg_name = string(default=None)  # any data segment name.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
     """
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
         JWST data model
-            A CubeModel with flat fielding applied if apply=True, unless
-            the step is skipped in which case `input_model` is returned.
+            The flat field model.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -42,9 +47,9 @@ class FlatFieldStep(Step):
 
             # Save.
             flat_name = '{}_stage_1_{}.fits'.format(
-                self.data_chunk_name, stsci_flat_field.flat_suffix)
+                self.data_seg_name, stsci_flat_field.flat_suffix)
             flat_name_new = '{}_stage_2_{}.fits'.format(
-                self.data_chunk_name, stsci_flat_field.flat_suffix)
+                self.data_seg_name, stsci_flat_field.flat_suffix)
             shutil.move(flat_name, os.path.join(self.stage_2_dir, flat_name_new))
 
             return output_model

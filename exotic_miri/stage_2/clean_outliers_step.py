@@ -8,14 +8,16 @@ import matplotlib.patches as patches
 
 class CleanOutliersStep(Step):
     """ Clean outliers step.
+
     This steps enables the user to clean outliers. NB. bit values as per:
     `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references
     _general/references_general.html?#data-quality-flags`.
+
     """
 
     spec = """
-    window_widths = int_list(default=None)  # window widths for spatial profile fitting.
-    dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
+    window_widths = int_list(default=[40])  # window widths for spatial profile fitting.
+    dq_bits_to_mask = int_list(default=[0,])  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
     spatial_profile_left_idx = integer(default=26)  # left-side of aperture width.
@@ -37,15 +39,19 @@ class CleanOutliersStep(Step):
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
-        JWST data model and spatial profile cube
-            A CubeModel with outliers cleaned, and a 3d np.array of the
-            fitted spatial profile.
+        (JWST data model, spatial profile cube, outlier counts)
+            A CubeModel with outliers cleaned, 3D np.array of the
+            fitted spatial profile, a count of number of outliers
+            cleaned near the spectral trace.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -74,7 +80,7 @@ class CleanOutliersStep(Step):
             self.clean()
 
         cleaned_model.data = self.D
-        cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier. todo check if already outlier
+        cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier.
 
         # Count number of replaced pixels on and near the spectral trace.
         outliers = self.count_outliers(cleaned_model)

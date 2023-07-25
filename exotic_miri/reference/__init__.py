@@ -1,11 +1,18 @@
 __all__ = [
-    "IntegrationTimesStep",
-    "GainStep",
-    "ReadNoiseStep",
-    "FlatFieldStep",
+    "GetIntegrationTimes",
+    "SetCustomGain",
+    "SetCustomLinearity",
+    "GetWavelengthMap",
+    "GetDefaultGain",
+    "GetDefaultReadNoise",
+    "GetDefaultFlatField",
 ]
 
-from exotic_miri.reference.get_integration_times import IntegrationTimesStep
-from exotic_miri.reference.get_gain import GainStep
-from exotic_miri.reference.get_readnoise import ReadNoiseStep
-from exotic_miri.reference.get_flat_field import FlatFieldStep
+from exotic_miri.reference.get_integration_times import GetIntegrationTimes
+from exotic_miri.reference.set_custom_gain import SetCustomGain
+from exotic_miri.reference.set_custom_linearity import SetCustomLinearity
+from exotic_miri.reference.get_wavelength_map import GetWavelengthMap
+
+from exotic_miri.reference.get_default_gain import GetDefaultGain
+from exotic_miri.reference.get_default_readnoise import GetDefaultReadNoise
+from exotic_miri.reference.get_default_flat_field import GetDefaultFlatField

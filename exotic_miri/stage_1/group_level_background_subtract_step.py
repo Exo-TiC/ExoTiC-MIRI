@@ -1,12 +1,13 @@
 import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
-import matplotlib.pyplot as plt
 
 
 class GroupBackgroundSubtractStep(Step):
-    """ Group background subtraction step.
-    This steps enables the user to subtract the background at the group level.
+    """ Group-level background subtraction step.
+
+    This step enables the user to subtract the background at the group level.
+
     """
 
     spec = """
@@ -20,14 +21,17 @@ class GroupBackgroundSubtractStep(Step):
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
-            A data model of type CubeModel.
+            A data model of type RampModel.
+
         Returns
         -------
         JWST data model
-            A RampModel with background subtracted.
+            A RampModel with group-level background subtracted.
+
         """
         with datamodels.open(input) as input_model:
 

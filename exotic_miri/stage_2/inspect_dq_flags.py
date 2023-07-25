@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 
 class InspectDQFlagsStep(Step):
     """Inspect dq flags step.
+
     This steps enables the user to inspect the dq flags present in
     the rate-images. NB. bit values as per:
     `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references
     _general/references_general.html?#data-quality-flags`.
+
     """
 
     spec = """
@@ -18,14 +20,17 @@ class InspectDQFlagsStep(Step):
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
         JWST data model
             No changes are made, the `input_model` is returned.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -84,7 +89,7 @@ class InspectDQFlagsStep(Step):
 
             if self.draw_dq_flags:
                 for int_idx in range(data_cube.shape[0]):
-                    fig, _ = plt.subplots(4, 8, figsize=(9, 7))
+                    fig, _ = plt.subplots(4, 8, figsize=(9, 7), sharex="all", sharey="all")
                     fig.suptitle('Integration={}'.format(int_idx))
                     for plot_bit, ax in enumerate(fig.axes):
                         ax.imshow(dq_tesseract_bits[int_idx, :, :, plot_bit],

@@ -7,8 +7,10 @@ from scipy.optimize import curve_fit
 
 class Extract1DBoxStep(Step):
     """ Box extraction step.
+
     This steps enables the user extract 1d stellar spectra using
     a box aperture.
+
     """
 
     spec = """
@@ -24,13 +26,16 @@ class Extract1DBoxStep(Step):
 
     def process(self, input, wavelength_map):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model and wavelength map.
             A data model of type CubeModel and wavelength map array.
+
         Returns
         -------
-        wavelengths, spectra, and spectra uncertainties
+        (wavelengths, spectra, and spectra uncertainties)
+
         """
         with datamodels.open(input) as input_model:
 

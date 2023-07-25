@@ -5,30 +5,34 @@ from jwst import datamodels
 from jwst.stpipe import Step
 
 
-class WavelengthMapStep(Step):
-    """ Get wavelength map step.
-    This steps enables the user to get and save the wavelength map data.
+class GetWavelengthMap(Step):
+    """ Get the wavelength map.
+
+    This enables the user to get and save the wavelength map data.
+
     """
 
     spec = """
-    data_chunk_name = string(default=None)  # data base name.
+    data_seg_name = string(default=None)  # data segment name.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
-    trim_col_start = integer(default=5)  # trim columns starts at.
-    trim_col_end = integer(default=-5)  # trim columns ends at.
+    trim_col_start = integer(default=0)  # trim columns before this index.
+    trim_col_end = integer(default=73)  # trim columns on and after this index.
     save = boolean(default=False)  # save map to disk as .fits.
     """
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
-        array
-            Wavelength map, unless the step is skipped in which case
-            `input_model` is returned.
+        array:
+            Wavelength map.
+
         """
         with datamodels.open(input) as input_model:
 

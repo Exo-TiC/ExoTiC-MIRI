@@ -78,6 +78,41 @@ class BackgroundSubtractStep(Step):
 
     def col_wise_background(self, data):
         """ One value per row per column per integration. """
+        # ll = 12
+        # lr = 36
+        # rl = 36
+        # rr = 72
+        #
+        # bkg_left = np.median(data[:, :, ll:lr], axis=(0, 1))
+        # bkg_right = np.median(data[:, :, rl:rr], axis=(0, 1))
+        # plt.scatter(np.arange(ll, lr), bkg_left)
+        # plt.scatter(np.arange(rl, rr), bkg_right)
+        # plt.show()
+        #
+        # bkg_left = np.median(data[:, 0::2, ll:lr], axis=(0, 1))
+        # bkg_right = np.median(data[:, 0::2, rl:rr], axis=(0, 1))
+        # plt.scatter(np.arange(ll, lr), bkg_left)
+        # plt.scatter(np.arange(rl, rr), bkg_right)
+        # bkg_left = np.median(data[:, 1::2, ll:lr], axis=(0, 1))
+        # bkg_right = np.median(data[:, 1::2, rl:rr], axis=(0, 1))
+        # plt.scatter(np.arange(ll, lr), bkg_left)
+        # plt.scatter(np.arange(rl, rr), bkg_right)
+        # plt.show()
+        #
+        # for row_idx in range(150, 400, 40):
+        #     bkg_left = np.median(data[:, row_idx:row_idx+20, ll:lr], axis=(0, 1))
+        #     bkg_right = np.median(data[:, row_idx:row_idx+20, rl:rr], axis=(0, 1))
+        #     plt.scatter(np.arange(ll, lr), bkg_left)
+        #     plt.scatter(np.arange(rl, rr), bkg_right)
+        #     plt.show()
+        #
+        # for row_idx in range(150, 400, 40):
+        #     bkg_left = np.median(data[:, row_idx:row_idx+20, ll:lr], axis=(0, 1))
+        #     bkg_right = np.median(data[:, row_idx:row_idx+20, rl:rr], axis=(0, 1))
+        #     plt.scatter(np.concatenate([np.arange(ll, lr), np.arange(rl, rr)]),
+        #                 np.concatenate([bkg_left, bkg_right]))
+        # plt.show()
+
         col_pixel_idxs = np.tile(np.arange(data.shape[2])[:, np.newaxis],
                                  (1, data.shape[1]))
         ls_mid_col = (self.bkg_col_left_start + self.bkg_col_left_end) / 2

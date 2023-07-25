@@ -5,32 +5,37 @@ from jwst import datamodels
 from jwst.stpipe import Step
 
 
-class ReadNoiseStep(Step):
-    """ Get readnoise step.
-    This steps enables the user to get and save readnoise data.
+class GetDefaultReadNoise(Step):
+    """ Get the default readnoise.
+
+    This enables the user to get and save readnoise data from
+    the default CRDS files.
+
     """
 
     spec = """
-    data_chunk_name = string(default=None)  # any data chunk name.
+    data_seg_name = string(default=None)  # any data segment name.
     stage_1_dir = string(default=None)  # directory of stage 1 products.
     stage_2_dir = string(default=None)  # directory of stage 2 products.
-    trim_col_start = integer(default=0)  # trim columns starts at.
-    trim_col_end = integer(default=72)  # trim columns ends at.
-    gain_value = float(default=1.0)  # gain value to convert form DN to electrons.
+    trim_col_start = integer(default=0)  # trim columns before this index.
+    trim_col_end = integer(default=73)  # trim columns on and after this index.
+    gain_value = float(default=3.1)  # gain value to convert form DN to electrons.
     median_value = boolean(default=False)  # only return median value.
     """
 
     def process(self, input):
         """Execute the step.
+
         Parameters
         ----------
         input: JWST data model
             A data model of type CubeModel.
+
         Returns
         -------
         array or float
-            Readnoise array (electrons) of float if median requested, unless
-            the step is skipped in which case `input_model` is returned.
+            Readnoise array [electrons], or float if median_value=True.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -44,7 +49,7 @@ class ReadNoiseStep(Step):
             # Data subarray positions.
             self.log.info('Getting subarray position.')
             stage_1_data_chunk = os.path.join(
-                self.stage_1_dir, '{}_stage_1.fits'.format(self.data_chunk_name))
+                self.stage_1_dir, '{}_stage_1.fits'.format(self.data_seg_name))
             data_header = fits.getheader(stage_1_data_chunk)
             xstart = data_header['SUBSTRT1']
             ystart = data_header['SUBSTRT2']
@@ -73,7 +78,7 @@ class ReadNoiseStep(Step):
                 # Save.
                 readnoise_model.save(path=os.path.join(
                     self.stage_2_dir, '{}_stage_2_readnoise.fits'.format(
-                        self.data_chunk_name)))
+                        self.data_seg_name)))
 
                 # Median value.
                 med_read_noise = np.median(readnoise_model.data)

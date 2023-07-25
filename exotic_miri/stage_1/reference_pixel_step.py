@@ -5,12 +5,17 @@ from jwst.stpipe import Step
 
 
 class ReferencePixelStep(Step):
-    """ Reference pixel correction.
+    """ Reference pixel step.
 
-    This steps enables the user to apply corrections to their group-
+    This step enables the user to apply corrections to their group-
     level images, using the reference pixels available to the MIRI LRS
     subarray. The corrections can be made with a variety of options
     for smoothing the values and/or separating odd and even rows.
+
+    The default pipeline, at the time of programming, does not have
+    this option for subrarrys. It assumes subarrays have no available
+    reference pixels, but the MIRI LRS subrarry is against the edge of
+    the detector.
 
     """
 
@@ -31,8 +36,8 @@ class ReferencePixelStep(Step):
         Returns
         -------
         JWST data model
-            A RampModel with the reference pixel correction applied, unless
-            the step is skipped in which case `input_model` is returned.
+            A RampModel with the reference pixel correction applied.
+
         """
         with datamodels.open(input) as input_model:
 
