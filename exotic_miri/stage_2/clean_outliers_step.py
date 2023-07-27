@@ -7,14 +7,7 @@ import matplotlib.patches as patches
 
 
 class CleanOutliersStep(Step):
-    """ Clean outliers step.
-
-    This steps enables the user to clean outliers using deviation from a
-    spatial profile, and/or values from the dq array. NB. bit values as per:
-    `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references
-    _general/references_general.html?#data-quality-flags`.
-
-    """
+    """ Clean outliers step. """
 
     spec = """
     window_widths = int_list(default=None)  # window widths for spatial profile fitting.
@@ -39,19 +32,54 @@ class CleanOutliersStep(Step):
         self.DQ_spatial = None
 
     def process(self, input):
-        """Execute the step.
+        """ Clean outliers using deviations from a spatial profile, following
+        Horne 1986, and/or values from the data quality array.
+
+        NB. DQ array bit values as per:
+        `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references_general/references_general.html?#data-quality-flags`.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.CubeModel
+            This is an rateints.fits loaded data segment.
+        window_widths: list of integers
+            The size of the windows in pixels, in the dispersion direction, to
+            use when fitting polynomials to the spatial profile. The size of the
+            window iterates cyclically through the list until the total height
+            of the detector is reached. Recommended to use smaller window sizes
+            at the shorter wavelengths (larger row indexes) as the throughput *
+            stellar spectra show larger variations here. For example,
+            [150, 100, 50, 50, 20, 20, 20].
+        dq_bits_to_mask: list of integers
+            A list of data quality flags to clean. These pixels are replaces by
+            the spatial profile values. See link above for definitions of the
+            DQ bit values. For example, [0, ] cleans pixes marked as 2**0
+            (do_not_use) in the DQ array.
+        poly_order: integer
+            Polynomial order for fitting to the windows of data. Default is 4.
+        outlier_threshold: float
+            Number of standard deviations away from the spatial profile for a
+            pixel to be determined as an outlier. Default is 4.0.
+        spatial_profile_left_idx: integer
+            Start index of the columns which should be included in the spatial
+            profile. Default is 26.
+        spatial_profile_right_idx: integer
+            End index of the columns which should be included in the spatial
+            profile. Default is 47.
+        draw_cleaning_col: boolean
+            Plot the cleaning interactively. Useful for understanding the process
+            and getting a feel for the hyperparams.
+        draw_spatial_profiles: boolean
+            Plot the spatial profiles after each integration is cleaned.
+        no_clean: boolean
+            Override, and just remove any nans. This is for quick tests.
 
         Returns
         -------
-        (JWST data model, spatial profile cube, outlier counts)
-            A CubeModel with outliers cleaned, 3D np.array of the
-            fitted spatial profile, a count of number of outliers
-            cleaned near the spectral trace.
+        output, spatial profile cube, outlier counts cube: tuple(CubeModel, np.ndarray, np.ndarray)
+            A CubeModel with outliers cleaned, a 3D array of the
+            fitted spatial profiles,and a count of the number of outliers
+            cleaned within 0-4 pixels of the spectral trace (column index 36).
 
         """
         with datamodels.open(input) as input_model:

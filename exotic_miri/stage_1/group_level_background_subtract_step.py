@@ -4,11 +4,7 @@ from jwst.stpipe import Step
 
 
 class GroupBackgroundSubtractStep(Step):
-    """ Group-level background subtraction step.
-
-    This step enables the user to subtract the background at the group level.
-
-    """
+    """ Group-level background subtraction step. """
 
     spec = """
     method = string(default="row_wise")  # background subtraction method: constant, row_wise, col_wise.
@@ -20,17 +16,38 @@ class GroupBackgroundSubtractStep(Step):
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Subtract the background at the group level.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type RampModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        method: string
+            The background subtraction method. constant: the background is
+            estimated as a median over the entire background region. row_wise
+            the background is estimated as a median per row. col_wise the
+            background is estimated within a row as a linear function of
+            column number. Default is row_wise.
+        bkg_col_left_start: integer
+            The column index of the start of the background region on the
+            left side of the spectral trace. Default is 8.
+        bkg_col_left_end: integer
+            The column index of the end of the background region on the
+            left side of the spectral trace. Default is 17.
+        bkg_col_right_start: integer
+            The column index of the start of the background region on the
+            right side of the spectral trace. Default is 56.
+        bkg_col_right_end: integer
+            The column index of the end of the background region on the
+            right side of the spectral trace. Default is 72.
+        smoothing_length: integer
+            If not None, the number of rows to median smooth the estimated
+            background values over. Default is no smoothing.
 
         Returns
         -------
-        JWST data model
-            A RampModel with group-level background subtracted.
+        output: jwst.datamodels.RampModel
+            A RampModel with the background subtracted from each group.
 
         """
         with datamodels.open(input) as input_model:

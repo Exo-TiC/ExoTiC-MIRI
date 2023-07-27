@@ -6,12 +6,7 @@ from scipy.optimize import curve_fit
 
 
 class Extract1DBoxStep(Step):
-    """ Box extraction step.
-
-    This steps enables the user extract 1d stellar spectra using
-    a box aperture.
-
-    """
+    """ Box extraction step. """
 
     spec = """
     trace_position = string(default="constant")  # locate trace method: constant, gaussian_fits
@@ -20,21 +15,48 @@ class Extract1DBoxStep(Step):
     aperture_right_width = integer(default=4)  # right-side of aperture width.
     draw_psf_fits = boolean(default=False)  # draw gauss fits to each column.
     draw_aperture = boolean(default=False)  # draw trace fits and position.
-    draw_mask = boolean(default=False)  # draw trace and dq flags mask.
     draw_spectra = boolean(default=False)  # draw extracted spectra.
     """
 
     def process(self, input, wavelength_map):
-        """Execute the step.
+        """ Extract time-series 1D stellar spectra using a box aperture.
 
         Parameters
         ----------
-        input: JWST data model and wavelength map.
-            A data model of type CubeModel and wavelength map array.
+        input: jwst.datamodels.CubeModel
+            This is an rateints.fits loaded data segment.
+        wavelength_map: np.ndarray
+            The wavelength map. This is output from
+            exotic_miri.reference.GetWavelengthMap.
+        trace_position: string
+            The method for locating the spectral trace per detector row.
+            constant: uses the value specified by aperture_center.
+            gaussian_fits: fit a Gaussian to each row to find the centre.
+        aperture_center: integer
+            The defined centre of the spectral trace in terms of column
+            index. Default is 36.
+        aperture_left_width: integer
+            The half-width of the box aperture in pixels away from the
+            aperture_center. Default is 4, and so this aperture would
+            include the aperture_center, say column 36, and 4 columns
+            to the left of this.
+        aperture_right_width: integer
+            The half-width of the box aperture in pixels away from the
+            aperture_center. Default is 4, and so this aperture would
+            include the aperture_center, say column 36, and 4 columns
+            to the right of this.
+        draw_psf_fits: boolean
+            Plot Gaussina fits to the PSF.
+        draw_aperture: boolean
+            Plot the defined aperture.
+        draw_spectra: boolean
+            Plot the extracted 1D spectra.
 
         Returns
         -------
-        (wavelengths, spectra, and spectra uncertainties)
+        wavelengths, spectra, spectra_uncertainties, trace_widths: tuple(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+            Arrays of wavelengths (n_rows,), spectra (n_ints, n_rows),
+            spectra_uncertainties (n_ints, n_rows), trace_widths (n_ints,).
 
         """
         with datamodels.open(input) as input_model:

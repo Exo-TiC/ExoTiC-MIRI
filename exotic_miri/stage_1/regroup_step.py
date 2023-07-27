@@ -3,31 +3,29 @@ from jwst.stpipe import Step
 
 
 class RegroupStep(Step):
-    """ Regroup groups into integrations.
-
-    This steps enables the user to regroup integrations, comprised
-    of n groups, into several smaller integrations, comprised of m
-    groups, where n is a multiple of m.
-    # TODO: add support for non-multiples.
-
-    """
+    """ Regroup long integrations into more shorter integrations. """
 
     spec = """
     n_groups = integer(default=10)  # new number of groups per integration
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Regroup integrations, comprised of m groups, into several smaller
+        integrations, comprised of n groups, where m is a multiple of n. This
+        may not be helpful but it is here if you want to try it.
+        TODO: add support for non-multiples.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type RampModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        n_groups: integer
+            The new number of groups per integration.
 
         Returns
         -------
-        JWST data model
-            A RampModel with updated integration groupings.
+        output: jwst.datamodels.RampModel
+            A RampModel reshaped into n_groups.
 
         """
         with datamodels.open(input) as input_model:

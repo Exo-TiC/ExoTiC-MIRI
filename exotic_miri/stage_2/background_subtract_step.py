@@ -1,13 +1,10 @@
 import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
-import matplotlib.pyplot as plt
 
 
 class BackgroundSubtractStep(Step):
-    """ Background subtraction step.
-    This steps enables the user to subtract the background.
-    """
+    """ Background subtraction step. """
 
     spec = """
     method = string(default="row_wise")  # background subtraction method: constant, row_wise, col_wise.
@@ -19,16 +16,39 @@ class BackgroundSubtractStep(Step):
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Subtract the background from the rate-images.
+
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.CubeModel
+            This is a rateints.fits loaded data segment.
+        method: string
+            The background subtraction method. constant: the background is
+            estimated as a median over the entire background region. row_wise
+            the background is estimated as a median per row. col_wise the
+            background is estimated within a row as a linear function of
+            column number. Default is row_wise.
+        bkg_col_left_start: integer
+            The column index of the start of the background region on the
+            left side of the spectral trace. Default is 8.
+        bkg_col_left_end: integer
+            The column index of the end of the background region on the
+            left side of the spectral trace. Default is 17.
+        bkg_col_right_start: integer
+            The column index of the start of the background region on the
+            right side of the spectral trace. Default is 56.
+        bkg_col_right_end: integer
+            The column index of the end of the background region on the
+            right side of the spectral trace. Default is 72.
+        smoothing_length: integer
+            If not None, the number of rows to median smooth the estimated
+            background values over. Default is no smoothing.
+
         Returns
         -------
-        JWST data model and background cube
-            A CubeModel with background subtracted, and a 3d np.array of the
-            estimated background.
+        output: jwst.datamodels.CubeModel
+            A CubeModel with the background subtracted from each integration.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -78,41 +98,6 @@ class BackgroundSubtractStep(Step):
 
     def _col_wise_background(self, data):
         """ One value per row per column per integration. """
-        # ll = 12
-        # lr = 36
-        # rl = 36
-        # rr = 72
-        #
-        # bkg_left = np.median(data[:, :, ll:lr], axis=(0, 1))
-        # bkg_right = np.median(data[:, :, rl:rr], axis=(0, 1))
-        # plt.scatter(np.arange(ll, lr), bkg_left)
-        # plt.scatter(np.arange(rl, rr), bkg_right)
-        # plt.show()
-        #
-        # bkg_left = np.median(data[:, 0::2, ll:lr], axis=(0, 1))
-        # bkg_right = np.median(data[:, 0::2, rl:rr], axis=(0, 1))
-        # plt.scatter(np.arange(ll, lr), bkg_left)
-        # plt.scatter(np.arange(rl, rr), bkg_right)
-        # bkg_left = np.median(data[:, 1::2, ll:lr], axis=(0, 1))
-        # bkg_right = np.median(data[:, 1::2, rl:rr], axis=(0, 1))
-        # plt.scatter(np.arange(ll, lr), bkg_left)
-        # plt.scatter(np.arange(rl, rr), bkg_right)
-        # plt.show()
-        #
-        # for row_idx in range(150, 400, 40):
-        #     bkg_left = np.median(data[:, row_idx:row_idx+20, ll:lr], axis=(0, 1))
-        #     bkg_right = np.median(data[:, row_idx:row_idx+20, rl:rr], axis=(0, 1))
-        #     plt.scatter(np.arange(ll, lr), bkg_left)
-        #     plt.scatter(np.arange(rl, rr), bkg_right)
-        #     plt.show()
-        #
-        # for row_idx in range(150, 400, 40):
-        #     bkg_left = np.median(data[:, row_idx:row_idx+20, ll:lr], axis=(0, 1))
-        #     bkg_right = np.median(data[:, row_idx:row_idx+20, rl:rr], axis=(0, 1))
-        #     plt.scatter(np.concatenate([np.arange(ll, lr), np.arange(rl, rr)]),
-        #                 np.concatenate([bkg_left, bkg_right]))
-        # plt.show()
-
         col_pixel_idxs = np.tile(np.arange(data.shape[2])[:, np.newaxis],
                                  (1, data.shape[1]))
         ls_mid_col = (self.bkg_col_left_start + self.bkg_col_left_end) / 2

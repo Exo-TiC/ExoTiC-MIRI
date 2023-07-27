@@ -4,28 +4,29 @@ from jwst.stpipe import Step
 
 
 class DropGroupsStep(Step):
-    """ Drop groups step.
-
-    This step enables the user to drop groups from all integrations
-    which may be adversely affecting the ramps.
-
-    """
+    """ Drop groups step. """
 
     spec = """
     drop_groups = int_list(default=None)  # groups to drop, zero-indexed.
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Drop groups which may be adversely affecting the ramps. This
+        may be due to detector effects such RSCD and the last frame effect.
+        This step simply marks groups as do_not_use and are thus ignored
+        in subsequent processing, such as by jwst.calwebb_detector1.ramp_fit_step.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type RampModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        drop_groups: list of integers
+            These integers are the groups to be dropped. The integers are
+            zero-indexed such that 0 is the first group.
 
         Returns
         -------
-        JWST data model
+        output: jwst.datamodels.RampModel
             A RampModel with groupdg flags set as do_not_use (2**0).
 
         """

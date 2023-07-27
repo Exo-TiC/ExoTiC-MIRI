@@ -6,12 +6,7 @@ import matplotlib.colors as mcolors
 
 
 class SetCustomLinearity(Step):
-    """ Set a custom linearity correction.
-
-    This enables the user to build self-calibrated linearity corrections
-    per amplifier.
-
-    """
+    """ Set a custom linearity correction. """
 
     spec = """
     group_idx_start_fit = integer(default=10)  # first group index included in linear fit
@@ -24,17 +19,48 @@ class SetCustomLinearity(Step):
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Make self-calibrated linearity corrections per amplifier. This
+        step uses the uncal.fits data to create a new linearity model.
+        This model can then be passed to the jwst.calwebb_detector1.linearity_step
+        via the arg 'override_gain'.
+
+        The correction involves extrapolating a linear fit to an assumed linear, or
+        well behaved section of the ramps, and then fitting a polynomial to the
+        residuals. The polynomial has the constant- and linear-term coefficients
+        fixed at 0 and 1 respectively. Recommended usage requires a large number
+        of groups, >~40, although this is still experimental.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        group_idx_start_fit: integer
+            The first group index included in the linear fit. This corresponds to
+            the start of the ramp which is assumed to be well behaved. Default is
+            10.
+        group_idx_end_fit: integer
+            The last group index included in the linear fit. This corresponds to
+            the end of the ramp which is assumed to be well behaved. Default is
+            40.
+        group_idx_start_derive: integer
+            The first group index included in the derived linearity correction.
+            Default is 10.
+        group_idx_end_derive: integer
+            The last group index included in the derived linearity correction.
+            Default is -1.
+        row_idx_start_used: integer
+            The first row index included in the derived linearity correction.
+            Default is 350.
+        row_idx_end_used: integer
+            The last row index included in the derived linearity correction.
+            Default is 386.
+        draw_corrections: boolean
+            Plot the derived linearity correction.
 
         Returns
         -------
-        JWST linearity_model:
-            A linearity model for override_linearity usage.
+        linearity : jwst.datamodels.LinearityModel
+            The linearity model which can be passed to other steps.
 
         """
         with datamodels.open(input) as input_model:

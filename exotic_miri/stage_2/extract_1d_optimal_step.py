@@ -6,37 +6,72 @@ from scipy.optimize import curve_fit
 
 
 class Extract1DOptimalStep(Step):
-    """ Optimal extraction step.
-
-    This steps enables the user extract 1d stellar spectra using
-    optimal extraction.
-
-    """
+    """ Optimal extraction step. """
 
     spec = """
     median_spatial_profile = boolean(default=False)  # use median spatial profile.
-    trace_position = string(default="constant")  # locate trace method.
+    trace_position = string(default="constant")  # locate trace method: constant, gaussian_fits
     aperture_center = integer(default=36)  # center of aperture.
     aperture_left_width = integer(default=8)  # left-side of aperture width.
     aperture_right_width = integer(default=8)  # right-side of aperture width.
     draw_psf_fits = boolean(default=False)  # draw gauss fits to each column.
     draw_aperture = boolean(default=False)  # draw trace fits and position.
-    draw_mask = boolean(default=False)  # draw trace and dq flags mask.
     draw_spectra = boolean(default=False)  # draw extracted spectra.
     """
 
     def process(self, input, wavelength_map, P, readnoise):
-        """Execute the step.
+        """ Extract time-series 1D stellar spectra using optimal
+        extraction as detailed in Horne 1986. The spatial profile
+        must be pre-computed and input.
 
         Parameters
         ----------
-        input: JWST data model, wavelength map, spatial profile, and readnoise.
-            A data model of type CubeModel, a wavelength map array,
-            a spatial profile cube, and a readnoise cube.
+        input: jwst.datamodels.CubeModel
+            This is an rateints.fits loaded data segment.
+        wavelength_map: np.ndarray
+            The wavelength map. This is output from
+            exotic_miri.reference.GetWavelengthMap.
+        P: np.ndarray
+            A cube of spatial profiles, one for each integration, of shape
+            (n_ints, n_rows, n_cols). The should be normalised within
+            each row (cross-disperion direction). These data can be made
+            using exotic_miri.stage_2.CleanOutliersStep.
+        readnoise: np.ndarray
+            A cube of readnoise values, one for each integration, of shape
+            (n_ints, n_rows, n_cols).
+        median_spatial_profile: boolean
+            If True median the spatial profiles through time. Default is
+            False.
+        trace_position: string
+            The method for locating the spectral trace per detector row.
+            constant: uses the value specified by aperture_center.
+            gaussian_fits: fit a Gaussian to each row to find the centre.
+        aperture_center: integer
+            The defined centre of the spectral trace in terms of column
+            index. Default is 36.
+        aperture_left_width: integer
+            The half-width of the box aperture in pixels away from the
+            aperture_center. Default is 4, and so this aperture would
+            include the aperture_center, say column 36, and 4 columns
+            to the left of this.
+        aperture_right_width: integer
+            The half-width of the box aperture in pixels away from the
+            aperture_center. Default is 4, and so this aperture would
+            include the aperture_center, say column 36, and 4 columns
+            to the right of this.
+        draw_psf_fits: boolean
+            Plot Gaussina fits to the PSF.
+        draw_aperture: boolean
+            Plot the defined aperture, within which optimal extraction
+            is applied.
+        draw_spectra: boolean
+            Plot the extracted 1D spectra.
 
         Returns
         -------
-        (wavelengths, spectra, and spectra uncertainties)
+        wavelengths, spectra, spectra_uncertainties, trace_widths: tuple(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+            Arrays of wavelengths (n_rows,), spectra (n_ints, n_rows),
+            spectra_uncertainties (n_ints, n_rows), trace_widths (n_ints,).
 
         """
         with datamodels.open(input) as input_model:

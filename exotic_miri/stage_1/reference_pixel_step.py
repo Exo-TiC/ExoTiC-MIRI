@@ -5,19 +5,7 @@ from jwst.stpipe import Step
 
 
 class ReferencePixelStep(Step):
-    """ Reference pixel step.
-
-    This step enables the user to apply corrections to their group-
-    level images, using the reference pixels available to the MIRI LRS
-    subarray. The corrections can be made with a variety of options
-    for smoothing the values and/or separating odd and even rows.
-
-    The default pipeline, at the time of programming, does not have
-    this option for subarrays. It assumes subarrays have no available
-    reference pixels, but the MIRI LRS subarray is against the edge of
-    the detector.
-
-    """
+    """ Reference pixel step. """
 
     spec = """
     smoothing_length = integer(default=None)  # median smooth values over pixel length
@@ -26,16 +14,32 @@ class ReferencePixelStep(Step):
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Reference pixel correction at the group level, using the
+        reference pixels available to the MIRI LRS subarray. The corrections
+        can be made with a variety of options for smoothing the values and/or
+        separating odd and even rows.
+
+        The default pipeline, at the time of programming, does not have
+        this option for subarrays. It assumes subarrays have no available
+        reference pixels, but the MIRI LRS subarray is against the edge of
+        the detector.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type RampModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        smoothing_length: integer
+            If not None, the number of rows to median smooth the estimated
+            reference pixel values over. Default is no smoothing.
+        odd_even_rows: boolean
+            Treat the correction separately for odd and even rows. Default
+            is True.
+        draw_correction: boolean
+            Plot the correction images.
 
         Returns
         -------
-        JWST data model
+        output: jwst.datamodels.RampModel
             A RampModel with the reference pixel correction applied.
 
         """

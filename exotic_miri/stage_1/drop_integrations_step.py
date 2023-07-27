@@ -4,31 +4,30 @@ from jwst.stpipe import Step
 
 
 class DropIntegrationsStep(Step):
-    """ Drop integrations step.
-
-    This step enables the user to drop integrations from a data chunk,
-    most likely because these integrations are too severely affected by
-    systematics to be worth processing, or this step may also be useful
-    if the user wants to test pipelines on only a small subset of data.
-
-    """
+    """ Drop integrations step. """
 
     spec = """
     drop_integrations = int_list(default=None)  # integrations to drop, zero-indexed.
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Drop integrations from a data segment. The use of this step is
+        most likely because these integrations are too severely affected by
+        systematics to be worth processing, or this step may also be useful
+        if the user wants to test pipelines on only a small subset of data.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type RampModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        drop_integrations: list of integers
+            These integers are the integrations to be dropped. The integers are
+            zero-indexed such that 0 is the first integration.
 
         Returns
         -------
-        JWST data model
-            A RampModel with dropped integrations.
+        output: jwst.datamodels.RampModel
+            A RampModel with [drop_integrations] removed.
 
         """
         with datamodels.open(input) as input_model:

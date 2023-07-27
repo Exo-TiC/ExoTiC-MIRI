@@ -7,9 +7,7 @@ import matplotlib.pyplot as plt
 
 
 class AlignSpectraStep(Step):
-    """ Align spectra step.
-    This steps enables the user align 1d stellar spectra.
-    """
+    """ Align spectra step. """
 
     spec = """
     align_spectra = boolean(default=True)  # interpolate spectra based on shifts.
@@ -18,13 +16,30 @@ class AlignSpectraStep(Step):
     """
 
     def process(self, input, spec, spec_unc):
-        """Execute the step.
+        """ Align the 1D stellar spectra. This step measures, by cross-correlation,
+        the x- and y-positions of the spectral trace through time. These positions
+        are returned and the spectra can optionally be realigned by the y-positions.
+
         Parameters
         ----------
-        input: JWST data model, spectra, and spectra uncertainties
+        input: jwst.datamodels.CubeModel
+            This is an rateints.fits loaded data segment.
+        align_spectra: boolean
+            If True the spectra are realigned by the measured y-positions. Default
+            is False.
+        draw_cross_correlation_fits: boolean
+            Plot the cross-correlation function and the fit to this determining the
+            trace position.
+        draw_trace_positions: boolean
+            Plot the measure trace positions.
+
         Returns
         -------
-        wavelengths, spectra, and spectra uncertainties
+        spectra, spectra_uncertainties, x_shifts, y_shifts: tuple(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+            The time-series spectra and their uncertainties each with
+            shape (n_ints, n_wavelengths) and the measure trace shifts
+            in x and y each with shape (n_ints,).
+
         """
         with datamodels.open(input) as input_model:
 

@@ -4,28 +4,24 @@ from jwst.stpipe import Step
 
 
 class GetIntegrationTimes(Step):
-    """ Get the integration times.
-
-    This enables the user to get and save the integration times, and
-    computes the integration duration in seconds.
-
-    """
+    """ Get the integration times. """
 
     spec = """
     
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Get and save the integration times for a data segment, and
+        compute the integration duration in seconds.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
 
         Returns
         -------
-        (fits.table, float)
+        timing_data and integration_duration: tuple(fits.table, float)
             Table of integration times data and duration of an
             integration in seconds.
 

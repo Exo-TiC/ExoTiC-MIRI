@@ -1,36 +1,44 @@
 import os
 import numpy as np
-from astropy.io import fits
 from jwst import datamodels
 from jwst.stpipe import Step
 
 
 class GetDefaultReadNoise(Step):
-    """ Get the default readnoise.
-
-    This enables the user to get and save readnoise data from
-    the default CRDS files.
-
-    """
+    """ Get the default readnoise. """
 
     spec = """
     median_value = boolean(default=False)  # only return median value.
     save = boolean(default=False)  # save readnoise model to disk as .fits.
-    save_path = boolean(default=False)  # save readnoise model path.
+    save_path = string(default=None)  # save readnoise model path.
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Get and save readnoise data from the default CRDS files.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.RampModel or jwst.datamodels.CubeModel
+            This is either an uncal.fits and rateints.fits loaded
+            data segment. The readnoise will be the same no matter which
+            data segment you pass in.
+        median_value : boolean
+            If True only return the median value rather than the readnoise
+            model. Default is False.
+        save : boolean
+            If True save the readnoise model to disc. Default is False.
+        save_path : string
+            If save==True save the readnoise model to this path. Default
+            is None.
 
         Returns
         -------
-        ReadnoiseModel or float
-            Readnoise model, or float if median_value=True.
+        if median_value == False:
+            gain : jwst.datamodels.ReadnoiseModel
+                The readnoise model which can be passed to other steps.
+        elif median_value == True:
+            gain : float
+                The median readnoise value on the entire detector.
 
         """
         with datamodels.open(input) as input_model:

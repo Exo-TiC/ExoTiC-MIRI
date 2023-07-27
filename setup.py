@@ -23,7 +23,7 @@ setup(
     package_data={
         "": ["README.rst", "LICENSE"]
     },
-    install_requires=["jwst>=1.8.0", "numpy", "scipy", "matplotlib"],
+    install_requires=["jwst>=1.8.0", "numpy", "astropy", "scipy", "matplotlib"],
     include_package_data=True,
     classifiers=[
         "Intended Audience :: Science/Research",

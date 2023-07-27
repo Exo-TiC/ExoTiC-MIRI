@@ -6,30 +6,31 @@ from jwst.stpipe import Step
 
 
 class GetWavelengthMap(Step):
-    """ Get the wavelength map.
-
-    This enables the user to get and save the wavelength map data.
-
-    """
+    """ Get the wavelength map. """
 
     spec = """
     trim_col_start = integer(default=0)  # trim columns before this index.
     trim_col_end = integer(default=73)  # trim columns on and after this index.
     save = boolean(default=False)  # save map to disk as .fits.
-    save_path = boolean(default=False)  # save map path.
+    save_path = string(default=None)  # save map path.
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Get and save the wavelength map data. This is the mapping from
+        the detector pixels (row_idx, col_idx) to wavelength (lambda). To
+        run this step the input must first have had the
+        jwst.calwebb_spec2.assign_wcs_step
+        and jwst.calwebb_spec2.srctype_step already run.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.CubeModel
+            This is an rateints.fits loaded data segment.
 
         Returns
         -------
-        np.ndarray: wavelength map.
+        wavelength_map: np.ndarray
+            The wavelength map with shape (n_rows, n_cols).
 
         """
         with datamodels.open(input) as input_model:

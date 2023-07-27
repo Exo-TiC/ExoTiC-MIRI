@@ -5,31 +5,33 @@ import matplotlib.pyplot as plt
 
 
 class InspectDQFlagsStep(Step):
-    """Inspect dq flags step.
-
-    This steps enables the user to inspect the dq flags present in
-    the rate-images. NB. bit values as per:
-    `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references
-    _general/references_general.html?#data-quality-flags`.
-
-    """
+    """Inspect DQ flags step. """
 
     spec = """
     draw_dq_flags = boolean(default=False)  # draw dq flags.
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Inspect the data quality flags present in your rate-images. This
+        step does not alter any data, it simply computes the number of each
+        type of DQ flag that are present, and optionally display where they are
+        on the detector. It is quite decent, would recommend some visual inspection
+        with this step.
+
+        NB. DQ array bit values as per:
+        `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references_general/references_general.html?#data-quality-flags`.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type CubeModel.
+        input: jwst.datamodels.CubeModel
+            This is an rateints.fits loaded data segment.
+        draw_dq_flags: boolean
+            Plot the DQ flags on the detector for each integration.
 
         Returns
         -------
-        JWST data model
-            No changes are made, the `input_model` is returned.
+        input: jwst.datamodels.CubeModel
+            The same model, unaltered from input.
 
         """
         with datamodels.open(input) as input_model:
