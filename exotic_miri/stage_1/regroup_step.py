@@ -37,28 +37,28 @@ class RegroupStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'regroup_step, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "regroup_step, skipping step.".format(
                                 str(type(input_model))))
-                regrouped_model.meta.cal_step.regroup = 'SKIPPED'
+                regrouped_model.meta.cal_step.regroup = "SKIPPED"
                 return regrouped_model
 
             # Check the observation mode.
-            if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which is not supported '
-                               'by ExoTic-MIRIs regroup_step, skipping step.'
+            if not input_model.meta.exposure.type == "MIR_LRS-SLITLESS":
+                self.log.error("Observation is a {} which is not supported "
+                               "by ExoTic-MIRIs regroup_step, skipping step."
                                .format(input_model.meta.exposure.type))
-                regrouped_model.meta.cal_step.regroup = 'SKIPPED'
+                regrouped_model.meta.cal_step.regroup = "SKIPPED"
                 return regrouped_model
 
             # Check original number of groups is a multiple of n_groups.
             n = regrouped_model.meta.exposure.ngroups
             if not n % self.n_groups == 0:
-                self.log.error('Regrouping to {} groups is not possible for '
-                               'the original group number {}. It must be a '
-                               'multiple, skipping step.'.format(
+                self.log.error("Regrouping to {} groups is not possible for "
+                               "the original group number {}. It must be a "
+                               "multiple, skipping step.".format(
                                 self.n_groups, n))
-                regrouped_model.meta.cal_step.regroup = 'SKIPPED'
+                regrouped_model.meta.cal_step.regroup = "SKIPPED"
                 return regrouped_model
 
             # Compute change in integration sizes.
@@ -84,6 +84,6 @@ class RegroupStep(Step):
             regrouped_model.meta.exposure.nints = n_int
             if regrouped_model._shape:
                 regrouped_model._shape = regrouped_model.data.shape
-            regrouped_model.meta.cal_step.regroup = 'COMPLETE'
+            regrouped_model.meta.cal_step.regroup = "COMPLETE"
 
         return regrouped_model

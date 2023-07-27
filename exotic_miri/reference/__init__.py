@@ -5,7 +5,6 @@ __all__ = [
     "GetWavelengthMap",
     "GetDefaultGain",
     "GetDefaultReadNoise",
-    "GetDefaultFlatField",
 ]
 
 from exotic_miri.reference.get_integration_times import GetIntegrationTimes
@@ -15,4 +14,3 @@ from exotic_miri.reference.get_wavelength_map import GetWavelengthMap
 
 from exotic_miri.reference.get_default_gain import GetDefaultGain
 from exotic_miri.reference.get_default_readnoise import GetDefaultReadNoise
-from exotic_miri.reference.get_default_flat_field import GetDefaultFlatField

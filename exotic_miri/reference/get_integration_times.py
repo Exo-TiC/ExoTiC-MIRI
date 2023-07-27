@@ -6,7 +6,8 @@ from jwst.stpipe import Step
 class GetIntegrationTimes(Step):
     """ Get the integration times.
 
-    This enables the user to get and save the integration times.
+    This enables the user to get and save the integration times, and
+    computes the integration duration in seconds.
 
     """
 
@@ -33,15 +34,15 @@ class GetIntegrationTimes(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'IntegrationTimesStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "IntegrationTimesStep, skipping step.".format(
                                 str(type(input_model))))
                 return input_model
 
             # Extract data.
             timing_data = input_model.int_times
             int_time_s = np.median(np.diff(
-                input_model.int_times['int_mid_BJD_TDB'])) * 24. * 3600.
-            self.log.info('Integration duration={} secs'.format(int_time_s))
+                input_model.int_times["int_mid_BJD_TDB"])) * 24. * 3600.
+            self.log.info("Integration duration={} secs".format(int_time_s))
 
         return timing_data, int_time_s

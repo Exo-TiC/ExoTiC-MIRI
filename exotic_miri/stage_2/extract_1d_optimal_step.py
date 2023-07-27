@@ -32,7 +32,7 @@ class Extract1DOptimalStep(Step):
         ----------
         input: JWST data model, wavelength map, spatial profile, and readnoise.
             A data model of type CubeModel, a wavelength map array,
-            a spatial profile cube, and a readnoise value.
+            a spatial profile cube, and a readnoise cube.
 
         Returns
         -------
@@ -46,8 +46,8 @@ class Extract1DOptimalStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'Extract1DBoxStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "Extract1DBoxStep, skipping step.".format(
                                 str(type(input_model))))
                 return None, None, None
 
@@ -66,17 +66,17 @@ class Extract1DOptimalStep(Step):
                 self._draw_trace_mask(extract_model.data, trace_mask_cube)
 
             # Get wavelengths on trace.
-            self.log.info('Assigning wavelengths using trace center.')
+            self.log.info("Assigning wavelengths using trace center.")
             wavelengths = wavelength_map[:, int(np.nanmedian(trace_position))]
 
             # Extract.
-            self.log.info('Optimal extraction in progress.')
+            self.log.info("Optimal extraction in progress.")
             if self.median_spatial_profile:
                 P = np.median(P, axis=0)
                 P /= np.sum(P, axis=1)[:, np.newaxis]
                 P = np.broadcast_to(
                     P[np.newaxis, :, :], shape=extract_model.data.shape)
-                self.log.info('Using median spatial profile.')
+                self.log.info("Using median spatial profile.")
             else:
                 # Re-norm rows in case different aperture width.
                 P /= np.sum(P, axis=2)[:, :, np.newaxis]
@@ -150,7 +150,7 @@ class Extract1DOptimalStep(Step):
         for int_idx in range(trace_mask_cube.shape[0]):
             trace_mask_cube[int_idx, :, ints_mask_left_edge[
                 int_idx]:ints_mask_right_edge[int_idx]] = True
-        self.log.info('Trace mask made.')
+        self.log.info("Trace mask made.")
 
         return trace_mask_cube, trace_position, trace_sigmas
 
@@ -168,19 +168,19 @@ class Extract1DOptimalStep(Step):
                 popt, pcov = curve_fit(
                     self._amp_gaussian, col_pixels, median_row_data,
                     p0=[np.max(median_row_data), col_pixels[np.argmax(median_row_data)],
-                        sigma_guess, 0.], method='lm')
+                        sigma_guess, 0.], method="lm")
                 trace_position.append(popt[1])
                 trace_sigmas.append(popt[2])
                 if self.draw_psf_fits:
                     self._draw_gaussian_fit(col_pixels, median_row_data, popt, pcov)
             except ValueError as err:
-                self.log.warn('Gaussian fitting failed, nans present '
-                              'for integration={}.'.format(int_idx))
+                self.log.warn("Gaussian fitting failed, nans present "
+                              "for integration={}.".format(int_idx))
                 trace_position.append(np.nan)
                 trace_sigmas.append(np.nan)
             except RuntimeError as err:
-                self.log.warn('Gaussian fitting failed to find optimal trace '
-                              'centre for integration={}.'.format(int_idx))
+                self.log.warn("Gaussian fitting failed to find optimal trace "
+                              "centre for integration={}.".format(int_idx))
                 trace_position.append(np.nan)
                 trace_sigmas.append(np.nan)
 
@@ -194,23 +194,23 @@ class Extract1DOptimalStep(Step):
         fig, ax1 = plt.subplots(1, 1, figsize=(9, 7))
 
         # Data and fit.
-        ax1.scatter(x_data, y_data, s=10, c='#000000',
-                    label='Data')
+        ax1.scatter(x_data, y_data, s=10, c="#000000",
+                    label="Data")
         xs_hr = np.linspace(np.min(x_data), np.max(x_data), 1000)
         ax1.plot(xs_hr, self._amp_gaussian(
-            xs_hr, popt[0], popt[1], popt[2], popt[3]), c='#bc5090',
-                 label='Gaussian fit, mean={}.'.format(popt[1]))
+            xs_hr, popt[0], popt[1], popt[2], popt[3]), c="#bc5090",
+                 label="Gaussian fit, mean={}.".format(popt[1]))
 
         # Gaussian centre and sigma.
         centre = popt[1]
         centre_err = np.sqrt(np.diag(pcov))[1]
-        ax1.axvline(centre, ls='--', c='#000000')
+        ax1.axvline(centre, ls="--", c="#000000")
         ax1.axvspan(centre - centre_err, centre + centre_err,
-                    alpha=0.25, color='#000000')
+                    alpha=0.25, color="#000000")
 
-        ax1.set_xlabel('Col pixels')
-        ax1.set_ylabel('DN')
-        ax1.set_title('$\mu$={}, and $\sigma$={}.'.format(
+        ax1.set_xlabel("Col pixels")
+        ax1.set_ylabel("DN")
+        ax1.set_title("$\mu$={}, and $\sigma$={}.".format(
             round(popt[1], 3), round(popt[2], 3)))
         plt.tight_layout()
         plt.show()
@@ -223,35 +223,35 @@ class Extract1DOptimalStep(Step):
 
             # Data.
             im = data_cube[int_idx, :, :]
-            ax1.imshow(im, origin='lower', aspect='auto', interpolation='none',
+            ax1.imshow(im, origin="lower", aspect="auto", interpolation="none",
                        vmin=np.percentile(im.ravel(), 1.),
                        vmax=np.percentile(im.ravel(), 99.))
 
             # Mask.
             im = trace_mask_cube[int_idx, :, :]
-            ax2.imshow(im, origin='lower', aspect='auto', interpolation='none')
+            ax2.imshow(im, origin="lower", aspect="auto", interpolation="none")
 
             # Number of pixels.
             ax3.plot(np.sum(trace_mask_cube[int_idx, :, :], axis=1),
                      np.arange(trace_mask_cube.shape[1]))
             ax3.set_xlim(0, 72)
 
-            fig.suptitle('Integration={}/{}.'.format(
+            fig.suptitle("Integration={}/{}.".format(
                 int_idx, data_cube.shape[0]))
-            ax1.set_ylabel('Row pixels')
-            ax2.set_ylabel('Row pixels')
-            ax3.set_ylabel('Row pixels')
-            ax1.set_xlabel('Col pixels')
-            ax2.set_xlabel('Col pixels')
-            ax3.set_xlabel('Number of pixels')
+            ax1.set_ylabel("Row pixels")
+            ax2.set_ylabel("Row pixels")
+            ax3.set_ylabel("Row pixels")
+            ax1.set_xlabel("Col pixels")
+            ax2.set_xlabel("Col pixels")
+            ax3.set_xlabel("Number of pixels")
             plt.tight_layout()
             plt.show()
 
     def _draw_extracted_spectra(self, wavelengths, spec_box):
         fig, ax1 = plt.subplots(1, 1, figsize=(13, 5))
         for int_idx in range(spec_box.shape[0]):
-            ax1.plot(wavelengths, spec_box[int_idx, :], c='#bc5090', alpha=0.02)
-        ax1.set_ylabel('Electrons')
-        ax1.set_xlabel('Wavelength')
+            ax1.plot(wavelengths, spec_box[int_idx, :], c="#bc5090", alpha=0.02)
+        ax1.set_ylabel("Electrons")
+        ax1.set_xlabel("Wavelength")
         plt.tight_layout()
         plt.show()

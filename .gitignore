@@ -34,3 +34,4 @@ tmtagsHistory
 # Caches.
 crds_cache
 .ipynb_checkpoints
+tests/config.json

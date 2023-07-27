@@ -38,19 +38,19 @@ class DropIntegrationsStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for _int'
-                               'egrations_step, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for _int"
+                               "egrations_step, skipping step.".format(
                                 str(type(input_model))))
-                thinned_model.meta.cal_step.drop_integrations = 'SKIPPED'
+                thinned_model.meta.cal_step.drop_integrations = "SKIPPED"
                 return thinned_model
 
             # Check the observation mode.
-            if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which is not supported by'
-                               ' ExoTic-MIRIs drop_integrations_step, skippin'
-                               'g step.'.format(
+            if not input_model.meta.exposure.type == "MIR_LRS-SLITLESS":
+                self.log.error("Observation is a {} which is not supported by"
+                               " ExoTic-MIRIs drop_integrations_step, skippin"
+                               "g step.".format(
                                 input_model.meta.exposure.type))
-                thinned_model.meta.cal_step.drop_integrations = 'SKIPPED'
+                thinned_model.meta.cal_step.drop_integrations = "SKIPPED"
                 return thinned_model
 
             # Check integrations to drop exist within data chunk.
@@ -58,14 +58,14 @@ class DropIntegrationsStep(Step):
             max_i_drop = np.max(self.drop_integrations)
             current_n_integrations = thinned_model.data.shape[0]
             if min_i_drop < 0 or max_i_drop > current_n_integrations - 1:
-                self.log.error('Not all integrations listed for dropping exis'
-                               't, requested to drop integrations between {} '
-                               'and {} when current integrations only span 0 '
-                               'to {}. Check your input list is zero indexed,'
-                               ' skipping step.'.format(
+                self.log.error("Not all integrations listed for dropping exis"
+                               "t, requested to drop integrations between {} "
+                               "and {} when current integrations only span 0 "
+                               "to {}. Check your input list is zero indexed,"
+                               " skipping step.".format(
                                 min_i_drop, max_i_drop,
                                 current_n_integrations - 1))
-                thinned_model.meta.cal_step.drop_integrations = 'SKIPPED'
+                thinned_model.meta.cal_step.drop_integrations = "SKIPPED"
                 return thinned_model
 
             # Compute wanted integrations.
@@ -87,6 +87,6 @@ class DropIntegrationsStep(Step):
             thinned_model.meta.exposure.nints = thinned_model.data.shape[0]
             if thinned_model._shape:
                 thinned_model._shape = thinned_model.data.shape
-            thinned_model.meta.cal_step.drop_integrations = 'COMPLETE'
+            thinned_model.meta.cal_step.drop_integrations = "COMPLETE"
 
         return thinned_model

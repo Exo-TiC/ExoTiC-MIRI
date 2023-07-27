@@ -36,8 +36,8 @@ class InspectDQFlagsStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'InspectDQFlagsStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "InspectDQFlagsStep, skipping step.".format(
                                 str(type(input_model))))
                 return input_model
 
@@ -78,24 +78,24 @@ class InspectDQFlagsStep(Step):
             # Cleaned metrics.
             total_cleaned = 0
             total_pixels = np.prod(data_cube.shape)
-            self.log.info('===== DQ flags info =====')
+            self.log.info("===== DQ flags info =====")
             for bit_idx in range(32):
                 nf_found = int(np.sum(dq_tesseract_bits[:, :, :, bit_idx]))
-                self.log.info('Found {} pixels with DQ bit={} name={}.'.format(
+                self.log.info("Found {} pixels with DQ bit={} name={}.".format(
                     nf_found, bit_idx, flags_dict[bit_idx]))
                 total_cleaned += nf_found
-            self.log.info('DQ fraction of total pixels={} %'.format(
+            self.log.info("DQ fraction of total pixels={} %".format(
                 round(total_cleaned / total_pixels * 100., 3)))
 
             if self.draw_dq_flags:
                 for int_idx in range(data_cube.shape[0]):
                     fig, _ = plt.subplots(4, 8, figsize=(9, 7), sharex="all", sharey="all")
-                    fig.suptitle('Integration={}'.format(int_idx))
+                    fig.suptitle("Integration={}".format(int_idx))
                     for plot_bit, ax in enumerate(fig.axes):
                         ax.imshow(dq_tesseract_bits[int_idx, :, :, plot_bit],
-                                  origin='lower', aspect='auto', interpolation='none')
+                                  origin="lower", aspect="auto", interpolation="none")
                         ax.text(20, 29, flags_dict[plot_bit],
-                                color='#ffffff', fontsize=4)
+                                color="#ffffff", fontsize=4)
                         ax.set_xticks([])
                         ax.set_yticks([])
                     plt.tight_layout()

@@ -41,8 +41,8 @@ class SetCustomLinearity(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'CustomLinearityStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "CustomLinearityStep, skipping step.".format(
                                 str(type(input_model))))
                 return None
 
@@ -100,8 +100,8 @@ class SetCustomLinearity(Step):
                                                 amplifier_fs, amplifier_ccs)
 
             # Use default reference file as template for custom file.
-            self.log.info('Building custom linearity datamodel.')
-            linearity_ref_name = self.get_reference_file(input_model, 'linearity')
+            self.log.info("Building custom linearity datamodel.")
+            linearity_ref_name = self.get_reference_file(input_model, "linearity")
             linearity_model = datamodels.LinearityModel(linearity_ref_name)
             linearity_model.coeffs = np.zeros((5, 1024, 1032))
             linearity_model.dq = np.zeros((1024, 1032))

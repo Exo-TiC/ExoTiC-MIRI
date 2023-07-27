@@ -36,18 +36,18 @@ class DropGroupsStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'drop_groups_step, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "drop_groups_step, skipping step.".format(
                                 str(type(input_model))))
-                thinned_model.meta.cal_step.drop_groups = 'SKIPPED'
+                thinned_model.meta.cal_step.drop_groups = "SKIPPED"
                 return thinned_model
 
             # Check the observation mode.
-            if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which is not supported '
-                               'by ExoTic-MIRIs drop_groups_step, skipping '
-                               'step.'.format(input_model.meta.exposure.type))
-                thinned_model.meta.cal_step.drop_groups = 'SKIPPED'
+            if not input_model.meta.exposure.type == "MIR_LRS-SLITLESS":
+                self.log.error("Observation is a {} which is not supported "
+                               "by ExoTic-MIRIs drop_groups_step, skipping "
+                               "step.".format(input_model.meta.exposure.type))
+                thinned_model.meta.cal_step.drop_groups = "SKIPPED"
                 return thinned_model
 
             # Check groups to drop exist.
@@ -55,13 +55,13 @@ class DropGroupsStep(Step):
             max_g_drop = np.max(self.drop_groups)
             current_n_groups = thinned_model.meta.exposure.ngroups
             if min_g_drop < 0 or max_g_drop > current_n_groups - 1:
-                self.log.error('Not all groups listed for dropping exist, req'
-                               'uested to drop groups between {} and {} when '
-                               'current groups only span 0 to {}. Check your '
-                               'input list is zero indexed, skipping step.'
+                self.log.error("Not all groups listed for dropping exist, req"
+                               "uested to drop groups between {} and {} when "
+                               "current groups only span 0 to {}. Check your "
+                               "input list is zero indexed, skipping step."
                                .format(min_g_drop, max_g_drop,
                                        current_n_groups - 1))
-                thinned_model.meta.cal_step.drop_groups = 'SKIPPED'
+                thinned_model.meta.cal_step.drop_groups = "SKIPPED"
                 return thinned_model
 
             # Set dropped groups as do not use 2**0.
@@ -69,6 +69,6 @@ class DropGroupsStep(Step):
                 thinned_model.groupdq[:, self.drop_groups, :, :], 2**0)
 
             # Update meta.
-            thinned_model.meta.cal_step.drop_groups = 'COMPLETE'
+            thinned_model.meta.cal_step.drop_groups = "COMPLETE"
 
         return thinned_model

@@ -9,15 +9,16 @@ import matplotlib.patches as patches
 class CleanOutliersStep(Step):
     """ Clean outliers step.
 
-    This steps enables the user to clean outliers. NB. bit values as per:
+    This steps enables the user to clean outliers using deviation from a
+    spatial profile, and/or values from the dq array. NB. bit values as per:
     `https://jwst-pipeline.readthedocs.io/en/latest/jwst/references
     _general/references_general.html?#data-quality-flags`.
 
     """
 
     spec = """
-    window_widths = int_list(default=[40])  # window widths for spatial profile fitting.
-    dq_bits_to_mask = int_list(default=[0,])  # dq flags for which pixels to clean.
+    window_widths = int_list(default=None)  # window widths for spatial profile fitting.
+    dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
     spatial_profile_left_idx = integer(default=26)  # left-side of aperture width.
@@ -60,8 +61,8 @@ class CleanOutliersStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'CleanOutliersStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "CleanOutliersStep, skipping step.".format(
                                 str(type(input_model))))
                 return input_model
 
@@ -116,12 +117,12 @@ class CleanOutliersStep(Step):
                 P_win_sub = P_win[:, self.spatial_profile_left_idx:self.spatial_profile_right_idx]
                 norm_win = np.sum(P_win_sub, axis=1)
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', RuntimeWarning)
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     P_win_sub /= norm_win[:, np.newaxis]
                 if np.isnan(P_win_sub).any():
                     # self.log.warn(
-                    #     'Spatial profile contains entire slice of negative '
-                    #     'values. Setting as top hat.')
+                    #     "Spatial profile contains entire slice of negative "
+                    #     "values. Setting as top hat.")
                     n_rows_win, n_cols_win = P_win_sub.shape
                     for row_win_idx, n in enumerate(norm_win):
                         if n == 0:
@@ -137,8 +138,8 @@ class CleanOutliersStep(Step):
             if self.draw_spatial_profiles:
                 self.draw_spatial_profile(int_idx)
 
-            self.log.info('Integration={}: cleaned {} outliers '
-                          'w/ spatial profile.'.format(
+            self.log.info("Integration={}: cleaned {} outliers "
+                          "w/ spatial profile.".format(
                            int_idx, np.sum(~self.DQ_spatial[int_idx])))
 
     def spatial_profile_cleaning(self, int_idx, win_start_idx, win_end_idx, win_width):
@@ -169,7 +170,7 @@ class CleanOutliersStep(Step):
                         raise TypeError
                     # Fit polynomial to row.
                     with warnings.catch_warnings():
-                        warnings.simplefilter('ignore', np.RankWarning)
+                        warnings.simplefilter("ignore", np.RankWarning)
                         p_coeff = np.polyfit(
                             row_pixel_idxs[col_mask], D_S_col[col_mask],
                             self.poly_order, w=None)
@@ -177,7 +178,7 @@ class CleanOutliersStep(Step):
 
                 except (np.linalg.LinAlgError, TypeError) as err:
                     with warnings.catch_warnings():
-                        warnings.simplefilter('ignore', np.RankWarning)
+                        warnings.simplefilter("ignore", np.RankWarning)
                         p_coeff = np.polyfit(
                             row_pixel_idxs, np.zeros(D_S_col.shape[0]),
                             self.poly_order, w=None)
@@ -190,7 +191,7 @@ class CleanOutliersStep(Step):
                 if dev_col[max_deviation_idx] > self.outlier_threshold:
                     # Outlier: mask and repeat poly fitting.
                     if self.draw_cleaning_col:
-                        print('Max dev={} > threshold={}'.format(
+                        print("Max dev={} > threshold={}".format(
                             dev_col[max_deviation_idx], self.outlier_threshold))
                         self.draw_poly_inter_fit(
                             int_idx, col_idx, win_start_idx, win_end_idx,
@@ -215,9 +216,9 @@ class CleanOutliersStep(Step):
                                             col_idx] = False
 
                     if self.draw_cleaning_col:
-                        print('Max dev={} > threshold={}'.format(
+                        print("Max dev={} > threshold={}".format(
                             dev_col[max_deviation_idx], self.outlier_threshold))
-                        print('Final cleaned data and fit.')
+                        print("Final cleaned data and fit.")
                         self.draw_poly_inter_fit(
                             int_idx, col_idx, win_start_idx, win_end_idx,
                             win_width, p_row, final=True)
@@ -241,13 +242,13 @@ class CleanOutliersStep(Step):
     def draw_poly_fit(self, idx_slice, x_data, y_data, x_model, y_model):
         """ Draw the polynomial fit. """
         fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
-        ax1.scatter(x_data, y_data, s=10, c='#000000', alpha=0.8,
-                    label='Data, slice={}.'.format(idx_slice))
-        ax1.plot(x_model, y_model, c='#bc5090', lw=3,
-                 label='Poly fit, order={}.'.format(self.poly_order))
-        ax1.set_xlabel('Pixel')
-        ax1.set_ylabel('Electrons')
-        plt.legend(loc='upper center')
+        ax1.scatter(x_data, y_data, s=10, c="#000000", alpha=0.8,
+                    label="Data, slice={}.".format(idx_slice))
+        ax1.plot(x_model, y_model, c="#bc5090", lw=3,
+                 label="Poly fit, order={}.".format(self.poly_order))
+        ax1.set_xlabel("Pixel")
+        ax1.set_ylabel("Electrons")
+        plt.legend(loc="upper center")
         plt.tight_layout()
         plt.show()
 
@@ -258,49 +259,49 @@ class CleanOutliersStep(Step):
         ax1.get_shared_x_axes().join(ax1, ax2)
         ax1.get_shared_y_axes().join(ax1, ax2)
 
-        ax1.imshow(~self.DQ_spatial[int_idx], origin='lower',
-                   aspect='auto', interpolation='none')
+        ax1.imshow(~self.DQ_spatial[int_idx], origin="lower",
+                   aspect="auto", interpolation="none")
         im = self.D[int_idx]
-        ax2.imshow(im, origin='lower', aspect='auto',
-                   interpolation='none',
+        ax2.imshow(im, origin="lower", aspect="auto",
+                   interpolation="none",
                    vmin=np.nanpercentile(im, 0.5),
                    vmax=np.nanpercentile(im, 99.5))
 
         rect = patches.Rectangle(
             (col_idx - 0.5, win_start_idx - 0.5), 1, win_width,
-            linewidth=1, edgecolor='#ffffff', facecolor='none')
+            linewidth=1, edgecolor="#ffffff", facecolor="none")
         ax1.add_patch(rect)
 
         if not final:
             x = np.arange(win_start_idx, win_end_idx)
             y = self.D[int_idx, win_start_idx:win_end_idx, col_idx]
-            ax3.scatter(y[col_mask], x[col_mask], s=10, c='#000000',
-                        alpha=0.8, label='Col={}.'.format(col_idx))
-            ax3.plot(p_col, x, c='#bc5090', lw=3,
-                     label='Poly fit, order={}.'.format(self.poly_order))
+            ax3.scatter(y[col_mask], x[col_mask], s=10, c="#000000",
+                        alpha=0.8, label="Col={}.".format(col_idx))
+            ax3.plot(p_col, x, c="#bc5090", lw=3,
+                     label="Poly fit, order={}.".format(self.poly_order))
         else:
             x = np.arange(win_start_idx, win_end_idx)
             y = self.D[int_idx, win_start_idx:win_end_idx, col_idx]
-            ax3.scatter(y, x, s=10, c='#000000',
-                        alpha=0.8, label='Col={}.'.format(col_idx))
-            ax3.plot(p_col, x, c='#bc5090', lw=3,
-                     label='Poly fit, order={}.'.format(self.poly_order))
+            ax3.scatter(y, x, s=10, c="#000000",
+                        alpha=0.8, label="Col={}.".format(col_idx))
+            ax3.plot(p_col, x, c="#bc5090", lw=3,
+                     label="Poly fit, order={}.".format(self.poly_order))
 
-        ax3.set_ylabel('Pixel')
-        ax3.set_xlabel('Electrons')
-        ax3.legend(loc='upper center')
+        ax3.set_ylabel("Pixel")
+        ax3.set_xlabel("Electrons")
+        ax3.legend(loc="upper center")
 
         plt.tight_layout()
         plt.show()
 
     def draw_spatial_profile(self, int_idx):
         fig = plt.figure(figsize=(7, 7))
-        ax1 = fig.add_subplot(111, projection='3d')
+        ax1 = fig.add_subplot(111, projection="3d")
         row_pixel_vals = np.arange(0, self.P.shape[1])
         col_pixel_vals = np.arange(0, self.P.shape[2])
         xx, yy = np.meshgrid(col_pixel_vals, row_pixel_vals)
-        ax1.plot_surface(xx, yy, self.P[int_idx], cmap='cividis', lw=0., rstride=1, cstride=1, alpha=0.9)
-        ax1.set_xlabel('Pixel column')
-        ax1.set_ylabel('Pixel row')
-        ax1.set_zlabel('DN')
+        ax1.plot_surface(xx, yy, self.P[int_idx], cmap="cividis", lw=0., rstride=1, cstride=1, alpha=0.9)
+        ax1.set_xlabel("Pixel column")
+        ax1.set_ylabel("Pixel row")
+        ax1.set_zlabel("DN")
         plt.show()

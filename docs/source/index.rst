@@ -14,7 +14,7 @@ custom steps that can be swapped in and out of both stage 1 and stage 2 data
 processing.
 
 The custom steps provided are built specifically for reducing time-series
-observations from the Mid-Infrared Instrument's low resolution spectrometer.
+observations from the Mid-Infrared Instrument"s low resolution spectrometer.
 This mode is of particular use to exoplanet observations, and as such the
 algorithms are designed with precise relative fluxes in mind.
 

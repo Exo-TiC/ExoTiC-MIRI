@@ -13,8 +13,8 @@ class ReferencePixelStep(Step):
     for smoothing the values and/or separating odd and even rows.
 
     The default pipeline, at the time of programming, does not have
-    this option for subrarrys. It assumes subarrays have no available
-    reference pixels, but the MIRI LRS subrarry is against the edge of
+    this option for subarrays. It assumes subarrays have no available
+    reference pixels, but the MIRI LRS subarray is against the edge of
     the detector.
 
     """
@@ -46,19 +46,19 @@ class ReferencePixelStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'reference_pixel_step, skipping step.'
+                self.log.error("Input is a {} which was not expected for "
+                               "reference_pixel_step, skipping step."
                                .format(str(type(input_model))))
-                rpc_model.meta.cal_step.refpix = 'SKIPPED'
+                rpc_model.meta.cal_step.refpix = "SKIPPED"
                 return rpc_model
 
             # Check the observation mode.
-            if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which is not supported '
-                               'by ExoTic-MIRIs reference_pixel_step, '
-                               'skipping step.'.format(
+            if not input_model.meta.exposure.type == "MIR_LRS-SLITLESS":
+                self.log.error("Observation is a {} which is not supported "
+                               "by ExoTic-MIRIs reference_pixel_step, "
+                               "skipping step.".format(
                                 input_model.meta.exposure.type))
-                rpc_model.meta.cal_step.refpix = 'SKIPPED'
+                rpc_model.meta.cal_step.refpix = "SKIPPED"
                 return rpc_model
 
             # Iterate integrations.
@@ -80,7 +80,7 @@ class ReferencePixelStep(Step):
                 rpc_model.data[idx_int] = int_ims + integration[0]
 
             # Update meta.
-            rpc_model.meta.cal_step.refpix = 'COMPLETE'
+            rpc_model.meta.cal_step.refpix = "COMPLETE"
 
         return rpc_model
 

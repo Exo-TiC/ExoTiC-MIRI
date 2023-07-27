@@ -30,8 +30,8 @@ class AlignSpectraStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'AlignSpectraStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "AlignSpectraStep, skipping step.".format(
                                 str(type(input_model))))
                 return None, None, None, None
 
@@ -91,10 +91,10 @@ class AlignSpectraStep(Step):
 
         # Interpolate to higher-resolution.
         interp_fx = interpolate.interp1d(
-            np.arange(0, x.shape[0]), x, kind='cubic')
+            np.arange(0, x.shape[0]), x, kind="cubic")
         x_hr = interp_fx(np.arange(0, x.shape[0] - 1, high_res_factor))
         interp_fy = interpolate.interp1d(
-            np.arange(y.shape[0]), y, kind='cubic')
+            np.arange(y.shape[0]), y, kind="cubic")
         y_hr = interp_fy(np.arange(0, x.shape[0] - 1, high_res_factor))
 
         # Level functions required.
@@ -126,7 +126,7 @@ class AlignSpectraStep(Step):
     def _draw_cross_correlation_fit(self, trim_lags, trim_norm_cc, p_coeffs,
                                     lag_parab_hr, high_res_factor):
         fig, ax1 = plt.subplots(1, 1, figsize=(13, 5))
-        ax1.scatter(trim_lags, trim_norm_cc, c='#000000')
+        ax1.scatter(trim_lags, trim_norm_cc, c="#000000")
         ax1.plot(trim_lags, np.polyval(p_coeffs, trim_lags))
         ax1.scatter(lag_parab_hr / high_res_factor, 1.)
         plt.tight_layout()
@@ -134,8 +134,8 @@ class AlignSpectraStep(Step):
 
     def _draw_trace_positions(self, x_shifts, y_shifts):
         fig, ax1 = plt.subplots(1, 1, figsize=(13, 5))
-        ax1.plot(x_shifts, label='x shifts')
-        ax1.plot(y_shifts, label='y shifts')
+        ax1.plot(x_shifts, label="x shifts")
+        ax1.plot(y_shifts, label="y shifts")
         ax1.legend()
         plt.tight_layout()
         plt.show()

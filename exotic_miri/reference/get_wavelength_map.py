@@ -13,11 +13,10 @@ class GetWavelengthMap(Step):
     """
 
     spec = """
-    data_seg_name = string(default=None)  # data segment name.
-    stage_2_dir = string(default=None)  # directory of stage 2 products.
     trim_col_start = integer(default=0)  # trim columns before this index.
     trim_col_end = integer(default=73)  # trim columns on and after this index.
     save = boolean(default=False)  # save map to disk as .fits.
+    save_path = boolean(default=False)  # save map path.
     """
 
     def process(self, input):
@@ -30,21 +29,20 @@ class GetWavelengthMap(Step):
 
         Returns
         -------
-        array:
-            Wavelength map.
+        np.ndarray: wavelength map.
 
         """
         with datamodels.open(input) as input_model:
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'WavelengthMapStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "WavelengthMapStep, skipping step.".format(
                                 str(type(input_model))))
                 return input_model
 
             # Extract wavelength map.
-            self.log.info('Getting wavelength map.')
+            self.log.info("Getting wavelength map.")
             row_g, col_g = np.mgrid[0:input_model.data.shape[1],
                                     0:input_model.data.shape[2]]
             wavelength_map = input_model.meta.wcs(
@@ -56,9 +54,9 @@ class GetWavelengthMap(Step):
             if self.save:
                 hdu = fits.PrimaryHDU(wavelength_map)
                 hdul = fits.HDUList([hdu])
-                wave_map_name = '{}_wavelengthmap.fits'.format(
+                wave_map_name = "{}_wavelengthmap.fits".format(
                     self.data_chunk_name)
                 hdul.writeto(os.path.join(
-                    self.stage_2_dir, wave_map_name), overwrite=True)
+                    self.save_path, wave_map_name), overwrite=True)
 
         return wavelength_map

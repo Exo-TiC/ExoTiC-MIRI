@@ -10,7 +10,7 @@ class BackgroundSubtractStep(Step):
     """
 
     spec = """
-    method = string(default="row_wise")  # background subtraction method.
+    method = string(default="row_wise")  # background subtraction method: constant, row_wise, col_wise.
     bkg_col_left_start = integer(default=8)  # left-side background start.
     bkg_col_left_end = integer(default=17)  # left-side background end.
     bkg_col_right_start = integer(default=56)  # right-side background start.
@@ -37,8 +37,8 @@ class BackgroundSubtractStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.CubeModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'BackgroundSubtractStep, skipping step.'.format(
+                self.log.error("Input is a {} which was not expected for "
+                               "BackgroundSubtractStep, skipping step.".format(
                                 str(type(input_model))))
                 return input_model
 
