@@ -35,3 +35,10 @@ tmtagsHistory
 crds_cache
 .ipynb_checkpoints
 tests/config.json
+docs/source/views/api/summary
+
+# Data.
+*.txt
+*.csv
+*.p
+!docs/requirements.txt

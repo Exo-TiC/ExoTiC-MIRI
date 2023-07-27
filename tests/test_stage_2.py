@@ -118,10 +118,10 @@ class TestStageOne(unittest.TestCase):
         no_bkg_data = np.copy(self.cube_model.data)
         self.cube_model.data[:, :, :] += bkg_signal
 
+        custom_bkg_subtract = BackgroundSubtractStep()
         for m in ["constant", "row_wise", "col_wise"]:
             for sl in [None, 20]:
                 for bkg_region_idxs in [(8, 17, 56, 72), (12, 16, 52, 68)]:
-                    custom_bkg_subtract = BackgroundSubtractStep()
                     _cube_model, bkg = custom_bkg_subtract.call(
                         self.cube_model, method=m,
                         bkg_col_left_start=bkg_region_idxs[0],

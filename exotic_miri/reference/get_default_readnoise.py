@@ -62,6 +62,9 @@ class GetDefaultReadNoise(Step):
             return readnoise_model
 
     def finalize_result(self, res, ref):
+        """
+        :meta private:
+        """
         # Required to enable ref model to be returned.
         # Overwrites base class method.
         pass

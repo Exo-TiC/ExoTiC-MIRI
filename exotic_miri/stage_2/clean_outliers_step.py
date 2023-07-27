@@ -68,7 +68,7 @@ class CleanOutliersStep(Step):
 
             if self.no_clean:
                 cleaned_model.data = np.nan_to_num(cleaned_model.data)
-                outliers = self.count_outliers(cleaned_model)
+                outliers = self._count_outliers(cleaned_model)
                 return cleaned_model, np.empty(cleaned_model.shape), outliers
 
             self.D = input_model.data
@@ -78,17 +78,17 @@ class CleanOutliersStep(Step):
             self.DQ_spatial = np.ones(self.D.shape).astype(bool)
 
             # Clean via col-wise windowed spatial profile fitting.
-            self.clean()
+            self._clean()
 
         cleaned_model.data = self.D
         cleaned_model.dq += (~self.DQ_spatial).astype(np.uint32) * 2**4  # Set as outlier.
 
         # Count number of replaced pixels on and near the spectral trace.
-        outliers = self.count_outliers(cleaned_model)
+        outliers = self._count_outliers(cleaned_model)
 
         return cleaned_model, self.P, outliers
 
-    def clean(self):
+    def _clean(self):
         """ Clean dq bits and via optimal extraction method of Horne 1986. """
         # Prep cycling of window widths to span all rows.
         n_ints, n_rows, n_cols = self.D.shape
@@ -110,7 +110,7 @@ class CleanOutliersStep(Step):
                     continue
 
                 # Spatial profile cleaning, and dq bit cleaning too.
-                P_win = self.spatial_profile_cleaning(
+                P_win = self._spatial_profile_cleaning(
                     int_idx, win_start_idx, win_end_idx, win_width)
 
                 # Normalise.
@@ -136,13 +136,13 @@ class CleanOutliersStep(Step):
                 self.P[int_idx, win_start_idx:win_end_idx, :] = P_win_full
 
             if self.draw_spatial_profiles:
-                self.draw_spatial_profile(int_idx)
+                self._draw_spatial_profile(int_idx)
 
             self.log.info("Integration={}: cleaned {} outliers "
                           "w/ spatial profile.".format(
                            int_idx, np.sum(~self.DQ_spatial[int_idx])))
 
-    def spatial_profile_cleaning(self, int_idx, win_start_idx, win_end_idx, win_width):
+    def _spatial_profile_cleaning(self, int_idx, win_start_idx, win_end_idx, win_width):
         """ P as per Horne 1986 table 1 (step 5). """
         P = []
         D_S = self.D[int_idx, win_start_idx:win_end_idx, :]
@@ -193,7 +193,7 @@ class CleanOutliersStep(Step):
                     if self.draw_cleaning_col:
                         print("Max dev={} > threshold={}".format(
                             dev_col[max_deviation_idx], self.outlier_threshold))
-                        self.draw_poly_inter_fit(
+                        self._draw_poly_inter_fit(
                             int_idx, col_idx, win_start_idx, win_end_idx,
                             win_width, p_row, col_mask)
 
@@ -219,7 +219,7 @@ class CleanOutliersStep(Step):
                         print("Max dev={} > threshold={}".format(
                             dev_col[max_deviation_idx], self.outlier_threshold))
                         print("Final cleaned data and fit.")
-                        self.draw_poly_inter_fit(
+                        self._draw_poly_inter_fit(
                             int_idx, col_idx, win_start_idx, win_end_idx,
                             win_width, p_row, final=True)
                     break
@@ -230,7 +230,7 @@ class CleanOutliersStep(Step):
 
         return P
 
-    def count_outliers(self, cleaned_model):
+    def _count_outliers(self, cleaned_model):
         outliers = []
         for region_width in range(5):
             outliers.append(np.sum(cleaned_model.dq[
@@ -239,7 +239,7 @@ class CleanOutliersStep(Step):
 
         return np.concatenate(outliers, axis=2)
 
-    def draw_poly_fit(self, idx_slice, x_data, y_data, x_model, y_model):
+    def _draw_poly_fit(self, idx_slice, x_data, y_data, x_model, y_model):
         """ Draw the polynomial fit. """
         fig, ax1 = plt.subplots(1, 1, figsize=(8, 7))
         ax1.scatter(x_data, y_data, s=10, c="#000000", alpha=0.8,
@@ -252,7 +252,7 @@ class CleanOutliersStep(Step):
         plt.tight_layout()
         plt.show()
 
-    def draw_poly_inter_fit(self, int_idx, col_idx, win_start_idx, win_end_idx,
+    def _draw_poly_inter_fit(self, int_idx, col_idx, win_start_idx, win_end_idx,
                             win_width, p_col, col_mask=None, final=False):
         """ Draw the polynomial fit. """
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(13, 8))
@@ -294,7 +294,7 @@ class CleanOutliersStep(Step):
         plt.tight_layout()
         plt.show()
 
-    def draw_spatial_profile(self, int_idx):
+    def _draw_spatial_profile(self, int_idx):
         fig = plt.figure(figsize=(7, 7))
         ax1 = fig.add_subplot(111, projection="3d")
         row_pixel_vals = np.arange(0, self.P.shape[1])

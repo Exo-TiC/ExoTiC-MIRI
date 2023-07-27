@@ -91,15 +91,15 @@ class Extract1DOptimalStep(Step):
                 rn = readnoise[int_idx, :, :]
 
                 # Extract standard spectrum.
-                f, var_f = self.extract_standard_spectra(
+                f, var_f = self._extract_standard_spectra(
                     integration, variance)
 
                 # Revise variance estimate.
-                var_revised = self.revise_variance_estimates(
+                var_revised = self._revise_variance_estimates(
                     f, spatial_profile, rn)
 
                 # Extract optimal spectrum.
-                f_opt, var_f_opt = self.extract_optimal_spectrum(
+                f_opt, var_f_opt = self._extract_optimal_spectrum(
                     integration, spatial_profile, var_revised)
                 fs_opt.append(f_opt)
                 var_fs_opt.append(var_f_opt)
@@ -112,18 +112,18 @@ class Extract1DOptimalStep(Step):
 
         return wavelengths, fs_opt, var_fs_opt**0.5, trace_sigmas
 
-    def extract_standard_spectra(self, D_S, V):
+    def _extract_standard_spectra(self, D_S, V):
         """ f and var_f as per Horne 1986 table 1 (step 4). """
         f = np.sum(D_S, axis=1)
         var_f = np.sum(V, axis=1)
         return f, var_f
 
-    def revise_variance_estimates(self, f, P, V_0, S=0., Q=1.):
+    def _revise_variance_estimates(self, f, P, V_0, S=0., Q=1.):
         """ V revised as per Horne 1986 table 1 (step 6). """
         V_rev = V_0 + np.abs(f[:, np.newaxis] * P + S) / Q
         return V_rev
 
-    def extract_optimal_spectrum(self, D_S, P, V_rev):
+    def _extract_optimal_spectrum(self, D_S, P, V_rev):
         """ f optimal as per Horne 1986 table 1 (step 8). """
         f_opt = np.sum(P * D_S / V_rev, axis=1) / np.sum(P ** 2 / V_rev, axis=1)
         var_f_opt = np.sum(P, axis=1) / np.sum(P ** 2 / V_rev, axis=1)

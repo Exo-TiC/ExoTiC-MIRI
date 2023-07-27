@@ -69,7 +69,7 @@ class ReferencePixelStep(Step):
 
                 # Compute and subtract the corrections.
                 # todo: mask flagged ref pixels.
-                ref_pixel_correction = self.compute_reference_pixel_correction(int_ims)
+                ref_pixel_correction = self._compute_reference_pixel_correction(int_ims)
 
                 if self.draw_correction:
                     self._draw_correction_images(idx_int, ref_pixel_correction)
@@ -84,7 +84,7 @@ class ReferencePixelStep(Step):
 
         return rpc_model
 
-    def compute_reference_pixel_correction(self, int_ims):
+    def _compute_reference_pixel_correction(self, int_ims):
         """ Compute the reference pixel correction tiles. """
         ref_pixels = int_ims[:, :, 0:4]
         if not self.odd_even_rows:

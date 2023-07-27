@@ -49,11 +49,11 @@ class GroupBackgroundSubtractStep(Step):
             for int_idx in range(input_model.data.shape[0]):
 
                 if self.method == "constant":
-                    bkg = self.constant_background(input_model.data[int_idx])
+                    bkg = self._constant_background(input_model.data[int_idx])
                 elif self.method == "row_wise":
-                    bkg = self.row_wise_background(input_model.data[int_idx])
+                    bkg = self._row_wise_background(input_model.data[int_idx])
                 elif self.method == "col_wise":
-                    bkg = self.col_wise_background(input_model.data[int_idx])
+                    bkg = self._col_wise_background(input_model.data[int_idx])
                 else:
                     raise ValueError("Background method not recognised.")
 
@@ -61,7 +61,7 @@ class GroupBackgroundSubtractStep(Step):
 
         return bkg_subtracted_model
 
-    def constant_background(self, data):
+    def _constant_background(self, data):
         """ One value per integration. """
         bkd_col_idxs = np.concatenate(
             [np.arange(self.bkg_col_left_start, self.bkg_col_left_end),
@@ -70,7 +70,7 @@ class GroupBackgroundSubtractStep(Step):
         return np.tile(bkg[:, np.newaxis, np.newaxis],
                        (1, data.shape[1], data.shape[2]))
 
-    def row_wise_background(self, data):
+    def _row_wise_background(self, data):
         """ One value per row per integration. """
         bkd_col_idxs = np.concatenate(
             [np.arange(self.bkg_col_left_start, self.bkg_col_left_end),
@@ -82,7 +82,7 @@ class GroupBackgroundSubtractStep(Step):
         else:
             return self._median_smooth_per_column(bkg)
 
-    def col_wise_background(self, data):
+    def _col_wise_background(self, data):
         """ One value per row per column per integration. """
         col_pixel_idxs = np.tile(np.arange(data.shape[2])[:, np.newaxis],
                                  (1, data.shape[1]))
