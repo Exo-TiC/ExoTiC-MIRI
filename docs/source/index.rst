@@ -1,16 +1,20 @@
 ExoTiC-MIRI
 ===========
 
-Custom steps for JWST MIRI LRS data reduction. Interoperable with the STScI
-pipeline. The Space Telescope `pipeline <https://github.com/spacetelescope/jwst>`_
+Custom steps for JWST MIRI LRS data reduction from raw data to light curves.
+Interoperable with the STScI pipeline.
+
+The Space Telescope `pipeline <https://github.com/spacetelescope/jwst>`_
 for JWST defines two main stages for the processing of raw observational data to
 a time series of 1D spectra.
-    - Stage 1: basic detector-level corrections at the group level, followed
-      by ramp fitting to make rate-images (_uncal.fits [ints, groups, rows, cols]
-      --> _rateints.fits [ints, rows, cols]).
-    - Stage 2: mode-specific corrections for the rate-images, followed by
-      extraction of the spectra (_rateints.fits [ints, rows, cols]
-      -- > time-series spectra [ints, wavelength]).
+    - Stage 1: starts from the _uncal.fits files and performs basic detector-level
+      corrections at the group level. This is followed by ramp fitting to make
+      _rateints.fits files, or rate-images. The dimensions of the data are transformed
+      from [ints, groups, rows, cols] to [ints, rows, cols].
+    - Stage 2: picks up the _rateints.fits files and performs mode-specific
+      corrections on these rate-images. This is followed by extraction of the
+      spectra to make light curves. The dimensions of the data are transformed
+      from [ints, rows, cols] to [ints, wavelength].
 In this package, we make available custom steps
 that can be swapped in and out of both stage 1 and stage 2 data processing.
 The custom steps provided are built specifically for reducing time-series
@@ -19,7 +23,7 @@ observations from the Mid-Infrared Instrument's low resolution spectrometer
 and as such the algorithms are designed with precise relative fluxes in mind.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents
 
    Installation <views/installation>
