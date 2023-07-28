@@ -2,8 +2,9 @@ Stage 1 steps
 =============
 
 The stage 1 steps perform basic detector-level corrections at the group
-level. Below we detail the workings of several steps that you may find
-useful for improving the quality of your reduction beyond the default
+level, followed by ramp fitting. Below we detail the workings of
+several steps that you may find useful for improving the quality of your
+reduction beyond the default
 `JWST stage 1 <https://jwst-pipeline.readthedocs.io/en/latest/jwst/pipeline/calwebb_detector1.html>`_.
 For a complete list of ExoTiC-MIRI steps and their workings, see the
 :doc:`API <api/api>`.
