@@ -1,0 +1,5 @@
+{
+    "CRDS_SERVER": "https://jwst-crds.stsci.edu",
+    "CRDS_DIR": "/path/to/data/crds_cache/jwst_ops",
+    "CRDS_PMAP": "jwst_xxxx.pmap"
+}
