@@ -3,8 +3,11 @@ ExoTiC-MIRI
 
 **Custom steps for JWST MIRI LRS data reduction. Interoperable with the STScI pipeline.**
 
-.. image:: https://github.com/DavoGrant/ExoTiC-MIRI/workflows/unittests/badge.svg
-   :target: https://github.com/DavoGrant/ExoTiC-MIRI/actions/workflows/python-app.yml
+.. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg
+   :target: http://www.astropy.org/
+
+.. image:: https://img.shields.io/badge/powered_by-JWST-gold.svg
+   :target: https://github.com/spacetelescope/jwst
    
 .. image:: https://readthedocs.org/projects/exotic-miri/badge/?version=latest
    :target: https://exotic-miri.readthedocs.io/en/latest/?badge=latest
