@@ -23,8 +23,8 @@ setup(
     package_data={
         "": ["README.rst", "LICENSE"]
     },
-    install_requires=["jwst>=1.8.0", "numpy", "astropy", "scipy", "matplotlib"],
-    include_package_data=True,
+    python_requires=">=3.8",
+    install_requires=["jwst>=1.8.2", "numpy", "astropy", "scipy", "matplotlib"],
     classifiers=[
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
@@ -33,6 +33,5 @@ setup(
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Astronomy",
         "Topic :: Software Development :: Libraries :: Python Modules"
-    ],
-    zip_safe=True,
+    ]
 )
