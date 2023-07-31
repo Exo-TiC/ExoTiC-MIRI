@@ -1,36 +1,47 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from jwst import datamodels
 from jwst.stpipe import Step
 
 
 class ReferencePixelStep(Step):
-    """ Reference pixel correction.
-
-    This steps enables the user to apply corrections to their group-
-    level images, using the reference pixels available to the MIRI LRS
-    subarray. The corrections can be made with a variety of options
-    for smoothing the values and/or separating odd and even rows.
-
-    """
+    """ Reference pixel step. """
 
     spec = """
     smoothing_length = integer(default=None)  # median smooth values over pixel length
     odd_even_rows = boolean(default=True)  # treat odd and even rows separately
+    draw_correction = boolean(default=False)  # draw correction images
     """
 
     def process(self, input):
-        """Execute the step.
+        """ Reference pixel correction at the group level, using the
+        reference pixels available to the MIRI LRS subarray. The corrections
+        can be made with a variety of options for smoothing the values and/or
+        separating odd and even rows.
+
+        The default pipeline, at the time of programming, does not have
+        this option for subarrays. It assumes subarrays have no available
+        reference pixels, but the MIRI LRS subarray is against the edge of
+        the detector.
 
         Parameters
         ----------
-        input: JWST data model
-            A data model of type RampModel.
+        input: jwst.datamodels.RampModel
+            This is an uncal.fits loaded data segment.
+        smoothing_length: integer
+            If not None, the number of rows to median smooth the estimated
+            reference pixel values over. Default is no smoothing.
+        odd_even_rows: boolean
+            Treat the correction separately for odd and even rows. Default
+            is True.
+        draw_correction: boolean
+            Plot the correction images.
 
         Returns
         -------
-        JWST data model
-            A RampModel with the reference pixel correction applied, unless
-            the step is skipped in which case `input_model` is returned.
+        output: jwst.datamodels.RampModel
+            A RampModel with the reference pixel correction applied.
+
         """
         with datamodels.open(input) as input_model:
 
@@ -39,19 +50,19 @@ class ReferencePixelStep(Step):
 
             # Check input model type.
             if not isinstance(input_model, datamodels.RampModel):
-                self.log.error('Input is a {} which was not expected for '
-                               'reference_pixel_step, skipping step.'
+                self.log.error("Input is a {} which was not expected for "
+                               "reference_pixel_step, skipping step."
                                .format(str(type(input_model))))
-                rpc_model.meta.cal_step.refpix = 'SKIPPED'
+                rpc_model.meta.cal_step.refpix = "SKIPPED"
                 return rpc_model
 
             # Check the observation mode.
-            if not input_model.meta.exposure.type == 'MIR_LRS-SLITLESS':
-                self.log.error('Observation is a {} which is not supported '
-                               'by ExoTic-MIRIs reference_pixel_step, '
-                               'skipping step.'.format(
+            if not input_model.meta.exposure.type == "MIR_LRS-SLITLESS":
+                self.log.error("Observation is a {} which is not supported "
+                               "by ExoTic-MIRIs reference_pixel_step, "
+                               "skipping step.".format(
                                 input_model.meta.exposure.type))
-                rpc_model.meta.cal_step.refpix = 'SKIPPED'
+                rpc_model.meta.cal_step.refpix = "SKIPPED"
                 return rpc_model
 
             # Iterate integrations.
@@ -61,18 +72,23 @@ class ReferencePixelStep(Step):
                 int_ims = integration - integration[0]
 
                 # Compute and subtract the corrections.
-                # todo: mask/replace flagged ref pixels.
-                int_ims -= self.compute_reference_pixel_correction(int_ims)
+                # todo: mask flagged ref pixels.
+                ref_pixel_correction = self._compute_reference_pixel_correction(int_ims)
+
+                if self.draw_correction:
+                    self._draw_correction_images(idx_int, ref_pixel_correction)
+
+                int_ims -= ref_pixel_correction
 
                 # Add first group back to all groups.
                 rpc_model.data[idx_int] = int_ims + integration[0]
 
             # Update meta.
-            rpc_model.meta.cal_step.refpix = 'COMPLETE'
+            rpc_model.meta.cal_step.refpix = "COMPLETE"
 
         return rpc_model
 
-    def compute_reference_pixel_correction(self, int_ims):
+    def _compute_reference_pixel_correction(self, int_ims):
         """ Compute the reference pixel correction tiles. """
         ref_pixels = int_ims[:, :, 0:4]
         if not self.odd_even_rows:
@@ -116,3 +132,13 @@ class ReferencePixelStep(Step):
                 ref_pixels[:, start_row:end_row + 1, :], axis=1)
 
         return sm_ref_pixels
+
+    def _draw_correction_images(self, idx_int, ref_pixel_correction):
+        for idx_grp, grp_correction in enumerate(ref_pixel_correction):
+            fig, ax1 = plt.subplots(1, 1, figsize=(5, 7))
+            ax1.imshow(grp_correction, origin="lower")
+            ax1.set_title("Integration={}, group={}".format(idx_int, idx_grp))
+            ax1.set_xlabel("Column pixels")
+            ax1.set_ylabel("Row pixels")
+            plt.tight_layout()
+            plt.show()
