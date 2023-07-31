@@ -37,7 +37,7 @@ and as such the algorithms are designed with precise relative fluxes in mind.
 Acknowledgements
 ----------------
 
-Built by David Grant, Daniel Valentine, Hannah Wakeford and
+Built by David Grant, Daniel Valentine, Hannah Wakeford, and
 `contributors <https://github.com/Exo-TiC/ExoTiC-MIRI/graphs/contributors>`_.
 
 If you make use of ExoTiC-MIRI in your research, see the :doc:`citation
