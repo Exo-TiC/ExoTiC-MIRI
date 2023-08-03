@@ -5,7 +5,8 @@ After installing the code (see :doc:`installation <installation>`) you
 are ready to reduce some data. Below is a minimal demo of how the ExoTiC-MIRI
 step may be interleaved with the default JWST pipeline steps.
 
-First, set your CRDS config and then import the JWST pipeline.
+First, set your CRDS config and then import the JWST pipeline. Note that the
+CRDS config must be set before importing the JWST pipeline.
 
 .. code-block:: python
 

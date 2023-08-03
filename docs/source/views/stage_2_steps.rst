@@ -56,9 +56,9 @@ Outlier cleaning
 ----------------
 
 If outliers remain in your rate-images, then this step offers a method for
-cleaning them without using any time-domain information. Outlier cleaning
-is performed by finding deviations from an estimated spatial profile of
-the spectral trace, following
+cleaning them without having to use any time-domain information, and proceeds
+frame-by-frame. Outlier cleaning is performed by finding deviations from an
+estimated spatial profile of the spectral trace, following
 `Horne 1986 <https://iopscience.iop.org/article/10.1086/131801/meta>`_.
 Outliers can also be optionally found by specifying specific data quality
 flags you wish to expunge. See
@@ -105,8 +105,8 @@ To perform background subtraction from your rate-images, you can make use of
 Here, we have used the default background regions either side of the spectral
 trace and applied a row-wise background subtraction. There more options for
 estimating the background as a linear function of detector column, or for
-smoothing over the background. The constant method is not recommended for MIRI
-LRS data.
+smoothing over the background. You can adjust also background region as
+required. NB. the constant method is not recommended for MIRI LRS data.
 
 
 Extract 1D spectra
@@ -131,7 +131,7 @@ MIRI LRS) and extends 4 pixels in each direction. The total aperture is therefor
 9 pixels wide. Note that you must have run the GetWavelengthMap step, so that you
 may pass the wavelength map as an input. Note that this step returns four outputs:
 the wavelengths, the time-series spectra, the uncertainties, and a measure of the
-PSF widths.
+point source function (PSF) widths.
 
 ExoTiC-MIRI also has an implementation of optimal extraction
 `(Horne 1986) <https://iopscience.iop.org/article/10.1086/131801/meta>`_.

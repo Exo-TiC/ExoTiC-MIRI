@@ -9,7 +9,7 @@ reduction beyond the default
 For a complete list of ExoTiC-MIRI steps and their workings, see the
 :doc:`API <api/api>`.
 
-The following examples assume you have setup the pipelines and loaded
+The following examples assume you have set up the pipelines and loaded
 in an _uncal.fits data segment. For example:
 
 .. code-block:: python
@@ -66,7 +66,8 @@ group level, to clean up the data before ramp fitting, then you can make use of
     proc = custom_group_bkg_subtract.call(proc, method="row_wise")
 
 Here, we have used the default background regions either side of the spectral
-trace and applied a row-wise background subtraction.
+trace and applied a row-wise background subtraction. You can adjust the method
+and background region as required.
 
 Custom gain
 -----------
@@ -123,5 +124,5 @@ This correction involves extrapolating a linear fit to an assumed linear, or
 well-behaved section of the ramps. In this case, this is between groups 5 and
 40. A polynomial is then fit to the ramps for data between groups 5 and 100 and
 for rows 350 to 386. The polynomial has the constant- and linear-term coefficients
-fixed at 0 and 1, respectively. This polynomial then serves as the correction for
-all ramps in all data segments hereafter.
+fixed at 0 and 1, respectively. This polynomial may then serve as the correction for
+all ramps in your dataset.

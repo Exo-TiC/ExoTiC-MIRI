@@ -76,7 +76,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
     custom_extract1d_box = Extract1DBoxStep()
     custom_align_spectra = AlignSpectraStep()
 
-    # Make custom gain datamodel.
+    # Make custom gain datamodel (using the final segment).
     uncal_last = datamodels.RampModel(os.path.join(data_dir, "{}_uncal.fits".format(seg_names[-1])))
     gain_model = custom_set_gain.call(uncal_last, gain_value=3.1)
     del uncal_last
@@ -88,7 +88,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
     all_x_shifts = []
     all_y_shifts = []
     all_trace_sigmas = []
-    all_O = []
+    all_outliers = []
     for seg in seg_names:
         print("\n========= Working on {} =========\n".format(seg))
 
@@ -114,7 +114,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
             skip=False, override_gain=gain_model)
         _, proc = stsci_ramp_fit.call(proc, override_gain=gain_model)
         proc = stsci_gain_scale.call(proc, override_gain=gain_model)
-        proc.save(path=os.path.join(stage_1_dir, "{}_stage_1.fits".format(seg)))
+        proc.save(path=os.path.join(stage_1_dir, "{}_rateints.fits".format(seg)))
 
         # Stage 2 reduction, part 1: auxiliary data.
         proc = stsci_assign_wcs.call(proc)
@@ -150,7 +150,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
         all_x_shifts.append(x_shifts)
         all_y_shifts.append(y_shifts)
         all_trace_sigmas.append(trace_sigmas)
-        all_O.append(O)
+        all_outliers.append(O)
 
     # Build xarray for all data products.
     ds = xr.Dataset(
@@ -161,7 +161,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
             x_shift=(["integration_number"], np.concatenate(all_x_shifts), {"units": "pixel"}),
             y_shift=(["integration_number"], np.concatenate(all_y_shifts), {"units": "pixel"}),
             psf_sigma=(["integration_number"], np.concatenate(all_trace_sigmas), {"units": "pixel"}),
-            n_outliers=(["integration_number", "wavelength", "region_width"], np.concatenate(all_O), {"units": ""}),
+            n_outliers=(["integration_number", "wavelength", "region_width"], np.concatenate(all_outliers), {"units": ""}),
         ),
         coords=dict(
             integration_number=(["integration_number"], np.arange(1, 1 + np.concatenate(all_spec).shape[0], 1), {"units": ""}),
@@ -241,11 +241,11 @@ we implement the self-calibrated linearity correction.
     custom_extract1d_box = Extract1DBoxStep()
     custom_align_spectra = AlignSpectraStep()
 
-    # Make custom gain datamodel.
+    # Make custom gain datamodel (using the final segment).
     uncal_last = datamodels.RampModel(os.path.join(data_dir, "{}_uncal.fits".format(seg_names[-1])))
     gain_model = custom_set_gain.call(uncal_last, gain_value=3.1)
 
-    # Make custom linearity model.
+    # Make custom linearity model (using the final segment).
     linearity_model = custom_set_linearity.call(
                 uncal_last, group_idx_start_fit=10, group_idx_end_fit=40,
                 group_idx_start_derive=10, group_idx_end_derive=99,
@@ -259,7 +259,7 @@ we implement the self-calibrated linearity correction.
     all_x_shifts = []
     all_y_shifts = []
     all_trace_sigmas = []
-    all_O = []
+    all_outliers = []
     for seg in seg_names:
         print("\n========= Working on {} =========\n".format(seg))
 
@@ -285,7 +285,7 @@ we implement the self-calibrated linearity correction.
             skip=False, override_gain=gain_model)
         _, proc = stsci_ramp_fit.call(proc, override_gain=gain_model)
         proc = stsci_gain_scale.call(proc, override_gain=gain_model)
-        proc.save(path=os.path.join(stage_1_dir, "{}_stage_1.fits".format(seg)))
+        proc.save(path=os.path.join(stage_1_dir, "{}_rateints.fits".format(seg)))
 
         # Stage 2 reduction, part 1: auxiliary data.
         proc = stsci_assign_wcs.call(proc)
@@ -321,7 +321,7 @@ we implement the self-calibrated linearity correction.
         all_x_shifts.append(x_shifts)
         all_y_shifts.append(y_shifts)
         all_trace_sigmas.append(trace_sigmas)
-        all_O.append(O)
+        all_outliers.append(O)
 
     # Build xarray for all data products.
     ds = xr.Dataset(
@@ -332,7 +332,7 @@ we implement the self-calibrated linearity correction.
             x_shift=(["integration_number"], np.concatenate(all_x_shifts), {"units": "pixel"}),
             y_shift=(["integration_number"], np.concatenate(all_y_shifts), {"units": "pixel"}),
             psf_sigma=(["integration_number"], np.concatenate(all_trace_sigmas), {"units": "pixel"}),
-            n_outliers=(["integration_number", "wavelength", "region_width"], np.concatenate(all_O), {"units": ""}),
+            n_outliers=(["integration_number", "wavelength", "region_width"], np.concatenate(all_outliers), {"units": ""}),
         ),
         coords=dict(
             integration_number=(["integration_number"], np.arange(1, 1 + np.concatenate(all_spec).shape[0], 1), {"units": ""}),
