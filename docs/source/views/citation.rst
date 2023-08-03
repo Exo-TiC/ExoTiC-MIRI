@@ -2,19 +2,19 @@ Citation
 ========
 
 If you make use of ExoTiC-MIRI in your research, please cite
-`Grant et al. 2023 <https://>`_:
+`Grant et al. 2023 <https://zenodo.org/record/8211207>`_:
 
 .. code-block::
 
-    @software{grant_2023_exotic_miri_v1,
-      author       = {David Grant and
-                      Daniel Valentine and
-                      Hannah R. Wakeford},
+    @software{grant_david_2023_8211207,
+      author       = {Grant, David and
+                      Valentine, Daniel E. and
+                      Wakeford, Hannah R.},
       title        = {Exo-TiC/ExoTiC-MIRI: ExoTiC-MIRI v1.0.0},
-      month        = jul,
+      month        = aug,
       year         = 2023,
       publisher    = {Zenodo},
       version      = {v1.0.0},
-      doi          = {tbd},
-      url          = {tbd}
+      doi          = {10.5281/zenodo.8211207},
+      url          = {https://doi.org/10.5281/zenodo.8211207}
     }
