@@ -71,7 +71,7 @@ flags you wish to expunge. See
 
     custom_clean_outliers = CleanOutliersStep()
     proc, P, O = custom_clean_outliers.call(proc, dq_bits_to_mask=[0, 11],
-                                            window_widths=[40],
+                                            window_heights=[40],
                                             poly_order=4, outlier_threshold=5.0)
 
 Here, a spatial profile is constructed from fourth-order polynomials, using

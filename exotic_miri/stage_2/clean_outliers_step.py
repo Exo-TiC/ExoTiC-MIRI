@@ -10,7 +10,7 @@ class CleanOutliersStep(Step):
     """ Clean outliers step. """
 
     spec = """
-    window_widths = int_list(default=None)  # window widths for spatial profile fitting.
+    window_heights = int_list(default=None)  # window heights for spatial profile fitting.
     dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
@@ -42,7 +42,7 @@ class CleanOutliersStep(Step):
         ----------
         input: jwst.datamodels.CubeModel
             This is a rateints.fits loaded data segment.
-        window_widths: list of integers
+        window_heights: list of integers
             The size of the windows in pixels, in the dispersion direction, to
             use when fitting polynomials to the spatial profile. The size of the
             window iterates cyclically through the list until the total height
@@ -118,11 +118,11 @@ class CleanOutliersStep(Step):
 
     def _clean(self):
         """ Clean dq bits and via optimal extraction method of Horne 1986. """
-        # Prep cycling of window widths to span all rows.
+        # Prep cycling of window heights to span all rows.
         n_ints, n_rows, n_cols = self.D.shape
-        window_widths = np.tile(self.window_widths, int(np.ceil(
-            n_rows / np.sum(self.window_widths))))
-        window_start_idxs = np.concatenate([[0, ], np.cumsum(window_widths)])
+        window_heights = np.tile(self.window_heights, int(np.ceil(
+            n_rows / np.sum(self.window_heights))))
+        window_start_idxs = np.concatenate([[0, ], np.cumsum(window_heights)])
 
         # Iterate integrations.
         for int_idx in range(n_ints):

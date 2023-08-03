@@ -125,7 +125,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
         proc = stsci_flat_field.call(proc)
         temp, _, _ = custom_clean_outliers.call(
             proc, dq_bits_to_mask=[0, ],
-            window_widths=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
+            window_heights=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
         _, bkg = custom_background_subtract.call(
             temp, method="row_wise", smoothing_length=None,
             bkg_col_left_start=12, bkg_col_left_end=22,
@@ -133,7 +133,7 @@ Here is an example pipeline for bright targets, e.g., 7 groups.
         proc.data -= bkg
         proc, P, O = custom_clean_outliers.call(
             proc, dq_bits_to_mask=[0, ],
-            window_widths=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
+            window_heights=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
 
         # Stage 2 reduction, part 3: extraction.
         proc.err[~np.isfinite(proc.err)] = 0.
@@ -296,7 +296,7 @@ we implement the self-calibrated linearity correction.
         proc = stsci_flat_field.call(proc)
         temp, _, _ = custom_clean_outliers.call(
             proc, dq_bits_to_mask=[0, ],
-            window_widths=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
+            window_heights=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
         _, bkg = custom_background_subtract.call(
             temp, method="row_wise", smoothing_length=None,
             bkg_col_left_start=12, bkg_col_left_end=22,
@@ -304,7 +304,7 @@ we implement the self-calibrated linearity correction.
         proc.data -= bkg
         proc, P, O = custom_clean_outliers.call(
             proc, dq_bits_to_mask=[0, ],
-            window_widths=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
+            window_heights=[150, 100, 50, 40, 30, 24], poly_order=4, outlier_threshold=5.0)
 
         # Stage 2 reduction, part 3: extraction.
         proc.err[~np.isfinite(proc.err)] = 0.
