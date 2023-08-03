@@ -10,7 +10,7 @@ class CleanOutliersStep(Step):
     """ Clean outliers step. """
 
     spec = """
-    window_widths = int_list(default=None)  # window widths for spatial profile fitting.
+    window_heights = int_list(default=None)  # window heights for spatial profile fitting.
     dq_bits_to_mask = int_list(default=None)  # dq flags for which pixels to clean.
     poly_order = integer(default=4)  # spatial profile polynomial fitting order.
     outlier_threshold = float(default=4.0)  # spatial profile fitting outlier sigma.
@@ -41,8 +41,8 @@ class CleanOutliersStep(Step):
         Parameters
         ----------
         input: jwst.datamodels.CubeModel
-            This is an rateints.fits loaded data segment.
-        window_widths: list of integers
+            This is a rateints.fits loaded data segment.
+        window_heights: list of integers
             The size of the windows in pixels, in the dispersion direction, to
             use when fitting polynomials to the spatial profile. The size of the
             window iterates cyclically through the list until the total height
@@ -51,7 +51,7 @@ class CleanOutliersStep(Step):
             stellar spectra show larger variations here. For example,
             [150, 100, 50, 50, 20, 20, 20].
         dq_bits_to_mask: list of integers
-            A list of data quality flags to clean. These pixels are replaces by
+            A list of data quality flags to clean. These pixels are replaced by
             the spatial profile values. See link above for definitions of the
             DQ bit values. For example, [0, ] cleans pixes marked as 2**0
             (do_not_use) in the DQ array.
@@ -78,7 +78,7 @@ class CleanOutliersStep(Step):
         -------
         output, spatial profile cube, outlier counts cube: tuple(CubeModel, np.ndarray, np.ndarray)
             A CubeModel with outliers cleaned, a 3D array of the
-            fitted spatial profiles,and a count of the number of outliers
+            fitted spatial profiles, and a count of the number of outliers
             cleaned within 0-4 pixels of the spectral trace (column index 36).
 
         """
@@ -118,11 +118,11 @@ class CleanOutliersStep(Step):
 
     def _clean(self):
         """ Clean dq bits and via optimal extraction method of Horne 1986. """
-        # Prep cycling of window widths to span all rows.
+        # Prep cycling of window heights to span all rows.
         n_ints, n_rows, n_cols = self.D.shape
-        window_widths = np.tile(self.window_widths, int(np.ceil(
-            n_rows / np.sum(self.window_widths))))
-        window_start_idxs = np.concatenate([[0, ], np.cumsum(window_widths)])
+        window_heights = np.tile(self.window_heights, int(np.ceil(
+            n_rows / np.sum(self.window_heights))))
+        window_start_idxs = np.concatenate([[0, ], np.cumsum(window_heights)])
 
         # Iterate integrations.
         for int_idx in range(n_ints):

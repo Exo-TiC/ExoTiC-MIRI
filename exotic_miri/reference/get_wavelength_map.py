@@ -10,7 +10,7 @@ class GetWavelengthMap(Step):
 
     spec = """
     trim_col_start = integer(default=0)  # trim columns before this index.
-    trim_col_end = integer(default=73)  # trim columns on and after this index.
+    trim_col_end = integer(default=72)  # trim columns on and after this index.
     save = boolean(default=False)  # save map to disk as .fits.
     save_path = string(default=None)  # save map path.
     """

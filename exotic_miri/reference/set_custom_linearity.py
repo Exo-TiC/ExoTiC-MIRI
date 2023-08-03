@@ -22,10 +22,10 @@ class SetCustomLinearity(Step):
         """ Make self-calibrated linearity corrections per amplifier. This
         step uses the uncal.fits data to create a new linearity model.
         This model can then be passed to the jwst.calwebb_detector1.linearity_step
-        via the arg 'override_gain'.
+        via the arg 'override_linearity'.
 
-        The correction involves extrapolating a linear fit to an assumed linear, or
-        well behaved section of the ramps, and then fitting a polynomial to the
+        The correction involves extrapolating a linear fit to an assumed linear
+        /“well-behaved” section of the ramps, and then fitting a polynomial to the
         residuals. The polynomial has the constant- and linear-term coefficients
         fixed at 0 and 1 respectively. Recommended usage requires a large number
         of groups, >~40, although this is still experimental.
@@ -36,12 +36,12 @@ class SetCustomLinearity(Step):
             This is an uncal.fits loaded data segment.
         group_idx_start_fit: integer
             The first group index included in the linear fit. This corresponds to
-            the start of the ramp which is assumed to be well behaved. Default is
-            10.
+            the start of the section of the ramp which is assumed to be well behaved.
+            Default is 10.
         group_idx_end_fit: integer
             The last group index included in the linear fit. This corresponds to
-            the end of the ramp which is assumed to be well behaved. Default is
-            40.
+            the end of the section of the ramp which is assumed to be well behaved.
+            Default is 40.
         group_idx_start_derive: integer
             The first group index included in the derived linearity correction.
             Default is 10.

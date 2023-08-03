@@ -27,7 +27,7 @@ class Extract1DOptimalStep(Step):
         Parameters
         ----------
         input: jwst.datamodels.CubeModel
-            This is an rateints.fits loaded data segment.
+            This is a rateints.fits loaded data segment.
         wavelength_map: np.ndarray
             The wavelength map. This is output from
             exotic_miri.reference.GetWavelengthMap.
