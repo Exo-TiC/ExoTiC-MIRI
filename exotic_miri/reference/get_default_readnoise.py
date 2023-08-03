@@ -19,7 +19,7 @@ class GetDefaultReadNoise(Step):
         Parameters
         ----------
         input: jwst.datamodels.RampModel or jwst.datamodels.CubeModel
-            This is either an uncal.fits and rateints.fits loaded
+            This is either an uncal.fits or rateints.fits loaded
             data segment. The readnoise will be the same no matter which
             data segment you pass in.
         median_value : boolean

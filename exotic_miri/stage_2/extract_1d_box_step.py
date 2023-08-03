@@ -24,7 +24,7 @@ class Extract1DBoxStep(Step):
         Parameters
         ----------
         input: jwst.datamodels.CubeModel
-            This is an rateints.fits loaded data segment.
+            This is a rateints.fits loaded data segment.
         wavelength_map: np.ndarray
             The wavelength map. This is output from
             exotic_miri.reference.GetWavelengthMap.
@@ -37,13 +37,13 @@ class Extract1DBoxStep(Step):
             index. Default is 36.
         aperture_left_width: integer
             The half-width of the box aperture in pixels away from the
-            aperture_center. Default is 4, and so this aperture would
-            include the aperture_center, say column 36, and 4 columns
+            aperture_center to the left. Default is 4, and so this aperture
+            would include the aperture_center, say column 36, and 4 columns
             to the left of this.
         aperture_right_width: integer
             The half-width of the box aperture in pixels away from the
-            aperture_center. Default is 4, and so this aperture would
-            include the aperture_center, say column 36, and 4 columns
+            aperture_center to the right. Default is 4, and so this aperture
+            would include the aperture_center, say column 36, and 4 columns
             to the right of this.
         draw_psf_fits: boolean
             Plot Gaussina fits to the PSF.

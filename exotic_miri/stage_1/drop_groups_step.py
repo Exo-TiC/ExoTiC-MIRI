@@ -12,7 +12,7 @@ class DropGroupsStep(Step):
 
     def process(self, input):
         """ Drop groups which may be adversely affecting the ramps. This
-        may be due to detector effects such RSCD and the last frame effect.
+        may be due to detector effects such RSCD and/or the last frame effect.
         This step simply marks groups as do_not_use and are thus ignored
         in subsequent processing, such as by jwst.calwebb_detector1.ramp_fit_step.
 
@@ -27,7 +27,7 @@ class DropGroupsStep(Step):
         Returns
         -------
         output: jwst.datamodels.RampModel
-            A RampModel with groupdg flags set as do_not_use (2**0).
+            A RampModel with groupdq flags set as do_not_use (2**0).
 
         """
         with datamodels.open(input) as input_model:
