@@ -92,7 +92,7 @@ class TestStageOne(unittest.TestCase):
                 for po in [1, 3]:
                     self.cube_model, P, O = custom_clean_outliers.call(
                         self.cube_model, dq_bits_to_mask=dq_m,
-                        window_widths=ww, poly_order=po, outlier_threshold=5.0)
+                        window_heights=ww, poly_order=po, outlier_threshold=5.0)
 
                     self.assertIsInstance(self.cube_model, datamodels.CubeModel)
                     self.assertIsInstance(P, np.ndarray)

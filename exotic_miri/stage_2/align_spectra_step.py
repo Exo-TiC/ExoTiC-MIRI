@@ -23,21 +23,21 @@ class AlignSpectraStep(Step):
         Parameters
         ----------
         input: jwst.datamodels.CubeModel
-            This is an rateints.fits loaded data segment.
+            This is a rateints.fits loaded data segment.
         align_spectra: boolean
             If True the spectra are realigned by the measured y-positions. Default
-            is False.
+            is True.
         draw_cross_correlation_fits: boolean
             Plot the cross-correlation function and the fit to this determining the
             trace position.
         draw_trace_positions: boolean
-            Plot the measure trace positions.
+            Plot the measured trace positions.
 
         Returns
         -------
         spectra, spectra_uncertainties, x_shifts, y_shifts: tuple(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
             The time-series spectra and their uncertainties each with
-            shape (n_ints, n_wavelengths) and the measure trace shifts
+            shape (n_ints, n_wavelengths) and the measured trace shifts
             in x and y each with shape (n_ints,).
 
         """

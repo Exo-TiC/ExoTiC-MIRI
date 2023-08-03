@@ -23,9 +23,9 @@ class BackgroundSubtractStep(Step):
         input: jwst.datamodels.CubeModel
             This is a rateints.fits loaded data segment.
         method: string
-            The background subtraction method. constant: the background is
-            estimated as a median over the entire background region. row_wise
-            the background is estimated as a median per row. col_wise the
+            The background subtraction method: constant, the background is
+            estimated as a median over the entire background region; row_wise,
+            the background is estimated as a median per row; col_wise, the
             background is estimated within a row as a linear function of
             column number. Default is row_wise.
         bkg_col_left_start: integer
