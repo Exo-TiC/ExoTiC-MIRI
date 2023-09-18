@@ -1,3 +1,6 @@
+numpy
+scipy
+matplotlib
 ipykernel
 nbsphinx
 # Temporary fix for lexer errors
